@@ -1,0 +1,22 @@
+{
+  "name": "resave",
+  "emitLegacyScripts": false,
+  "tree": {
+    "$className": "DataModel",
+    "ServerScriptService": {
+      "packages": {
+        "$className": "Folder",
+        "resave": {
+          "$path": "lib"
+        }
+      }
+    },
+    "ServerStorage": {
+      "tests": {
+        "$path": {
+          "optional": "tests/roblox"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+[package]
+name = "ernisto/re-save"
+version = "0.1.0"
+license = "MIT"
+description = "A lock-less data store library."
+registry = "https://github.com/UpliftGames/wally-index"
+realm = "server"
+include = ["default.project.json", "LICENSE", "lib"]
