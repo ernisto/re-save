@@ -14,7 +14,7 @@ local session = require '@self/session'
 type session<T = any> = session.session<T>
 type store<T = any> = session.store<T>
 
-local function any_job_to_resolve_tx() end
+local function anything_just_to_write_default() end
 
 -- api
 local function track<T>(st: store<T>, key: string): (string?, session<T>?)
@@ -29,7 +29,7 @@ local function track<T>(st: store<T>, key: string): (string?, session<T>?)
 	local s = session.identify(st, key)
 	st.tracking[key] = s
 
-	local err = sync.reconcilecloudandtx(s, any_job_to_resolve_tx)
+	local err = sync.reconcilecloudandtx(s, anything_just_to_write_default)
 	if err then
 		st.tracking[key] = nil
 		return err, nil
@@ -54,10 +54,10 @@ end
 local function view<T>(st: store<T>, key: string): (string?, T?)
 	local loaded: session<T> = st.tracking[key]
 	if loaded then
-		local pusherr, cloud = sync.reconcilecloudandtx(loaded)
+		local readerr, cloud = sync.reconcilecloudandtx(loaded)
 		if cloud then return nil, cloud.data end
 
-		return pusherr, nil
+		return readerr, nil
 	end
 	local cacheddata = loaded and loaded.data
 
@@ -79,18 +79,27 @@ local function update<T>(s: session<T>, update: (T) -> ())
 end
 local function awaitsaveupdate<T>(st: store<T>, key: string, update: (T) -> ()): string?
 	local s = session.identify(st, key)
-	return (sync.reconcilecloudandtx(s, function(record)
+	local err = sync.reconcilecloudandtx(s, function(record)
 		update(record.data)
-	end))
+		if record.pendingtx then update(record.pendingtx.newdata) end
+	end)
+	return err
 end
 
 -- transaction
 local function locktx<T>(s: session<T>, txid: string, update: op<T>): (string?, record<T>?)
 	return sync.reconcilecloudandtx(s, function(record: record<T>)
+		if record.pendingtx then error('[withfreetx] pending tx', 0) end
+
 		local err, data = operation.cloneapply(record.data, update)
 		assert(data, err)
 
-		record.pendingtx = { id = txid, newdata = data, version = record.version, cooltimestamp = 0 }
+		record.pendingtx = {
+			id = txid,
+			newdata = data,
+			version = record.version,
+			cooltimestamp = os.time() + tx.cooldown,
+		}
 	end)
 end
 local function batchlocktx(sessions: { session }, txid: string, updates: { [session]: op }): (string?, { session })

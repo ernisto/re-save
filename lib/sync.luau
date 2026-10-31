@@ -12,7 +12,13 @@ type record<T> = record.record<T>
 
 -- functions
 local function fetchcloud<T>(s: session<T>): (string?, record<T>?)
-	return storage.awaitget(s.store.ds, s.key)
+	local err, value = storage.awaitget(s.store.ds, s.key)
+	if err then return err, nil end
+
+	local ok, result = pcall(record.working, s.store.schema, value)
+	if not ok then return `[fetchcloud] {result}`, nil end
+
+	return nil, result
 end
 
 local function reconcilecloud<T>(
@@ -30,10 +36,8 @@ local function reconcilecloud<T>(
 		upstream = record.working(s.store.schema, value)
 		if txupdate then txupdate(upstream) end
 
-		if upstream.pendingtx ~= nil then
-			innererr = '[reconcilecloud] pending tx'
-			return nil
-		end
+		local lockedtx = upstream.pendingtx
+		if lockedtx then lockedtx.newdata = operation.rebase(s.pendingupdates, lockedtx.newdata) end
 		upstream.data, successedrebases = operation.rebase(s.pendingupdates, upstream.data)
 
 		if not job then return upstream end
@@ -67,9 +71,7 @@ local function handletxlock<T>(s: session<T>, curtx: record.txlock<T>, inheritjo
 	local txerr, txdata = tx.awaitfetch(curtx.id)
 	if txerr then return txerr, nil end
 
-	if txdata and txdata.state == 'pending' and os.time() < txdata.committimeout then
-		return '[handletxlock] pending tx', nil
-	end
+	if txdata and txdata.state == 'pending' and os.time() < txdata.committimeout then return nil, nil end
 
 	local commited = txdata ~= nil and txdata.state == 'commited'
 	local txupdate = record.txsolver(s.store.schema, curtx.id, commited)
@@ -82,24 +84,22 @@ local function handletxlock<T>(s: session<T>, curtx: record.txlock<T>, inheritjo
 end
 
 local function reconcilecloudandtx<T>(s: session<T>, job: nil | (record<T>) -> ()): (string?, record<T>?)
+	local readerr, writeerr, upstream
+
 	if job == nil and #s.pendingupdates == 0 then
-		local readerr, upstream = fetchcloud(s)
+		readerr, upstream = fetchcloud(s)
 		if upstream == nil then return readerr, nil end
 
 		s.base = utils.deepfreeze(upstream.data)
 		s.data = s.base
-
-		return readerr, upstream
+	else
+		readerr, writeerr, upstream = reconcilecloud(s, job)
 	end
 
-	local readerr, writeerr, upstream = reconcilecloud(s, job)
 	if upstream == nil then return readerr, nil end
 
 	local curtx = upstream.pendingtx
-	if writeerr and curtx and os.time() > curtx.cooltimestamp then -- todo: assign cooltimestamp
-		local txerr, upstream2 = handletxlock(s, curtx, job)
-		return txerr and `{writeerr}\n{txerr}`, upstream2 or upstream
-	end
+	if curtx then task.spawn(handletxlock, s, curtx, job) end
 
 	return writeerr, upstream
 end

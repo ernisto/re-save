@@ -28,6 +28,12 @@ local function workingrecord<T>(workingschema: schema.schema<T>, value: unknown)
 	record.data = schema.workingdata(workingschema, record.version, record.data)
 	record.version = #workingschema.migrations
 
+	local tx = record.pendingtx
+	if tx then
+		tx.newdata = schema.workingdata(workingschema, tx.version, tx.newdata)
+		tx.version = record.version
+	end
+
 	return record
 end
 

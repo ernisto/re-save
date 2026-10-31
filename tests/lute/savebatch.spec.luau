@@ -5,6 +5,8 @@ local txstore = shim.stores.tx
 
 local helpers = require './helpers'
 local throwscontains = helpers.throwscontains
+local maketest = helpers.maketest
+local record = helpers.record
 local suite = helpers.suite
 local unique = helpers.unique
 
@@ -81,5 +83,27 @@ suite('savebatch', function(s)
 		t.eq(shim.stores[a].data.a.pendingtx, nil)
 		-- failed session never wrote
 		t.eq(shim.stores[b].data.b, nil)
+	end)
+
+	s:case('defers_lock_while_other_pendingtx_unexpired', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+		maketest('tx-live', {})
+		shim.stores[name].data.a = record(
+			{ coins = 5 },
+			0,
+			{ id = 'tx-live', newdata = { coins = 9 }, version = 0, cooltimestamp = 0 }
+		)
+
+		local err = resave.savebatch(function(queue)
+			queue(st, 'a', function(d)
+				d.coins += 3
+			end)
+		end)
+		assert(err)
+
+		t.strContains(err, 'pending tx')
+		t.eq(shim.stores[name].data.a.data, { coins = 5 })
+		t.eq(shim.stores[name].data.a.pendingtx.id, 'tx-live')
 	end)
 end)

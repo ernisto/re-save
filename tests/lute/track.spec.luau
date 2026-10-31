@@ -62,7 +62,6 @@ suite('track', function(s)
 		local st = resave.store(name, { schema = resave.schema {} })
 		shim.stores[name].data.p1 = record({}, 5)
 
-		-- assert surfaces as the returned error via the xpcall'd UpdateAsync
 		local err, session = resave.track(st, 'p1')
 		assert(err)
 
@@ -161,7 +160,7 @@ suite('track', function(s)
 		t.eq(shim.stores[name].data.p1.pendingtx, nil)
 	end)
 
-	s:case('track_fails_while_pendingtx_unexpired', function(t)
+	s:case('track_loads_current_branch_while_pendingtx_unexpired', function(t)
 		local name = unique()
 		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
 		maketest('tx-live', {})
@@ -172,11 +171,10 @@ suite('track', function(s)
 		)
 
 		local err, session = resave.track(st, 'p1')
-		assert(err)
+		assert(session, err)
 
-		t.strContains(err, 'pending tx')
-		t.eq(session, nil)
-		t.eq(st.tracking.p1, nil)
+		t.eq(session.data, { coins = 5 })
+		t.eq(shim.stores[name].data.p1.pendingtx.id, 'tx-live')
 	end)
 
 	s:case('track_resolves_expired_pendingtx_as_aborted', function(t)

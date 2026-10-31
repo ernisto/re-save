@@ -3,6 +3,8 @@ local resave: typeof(require '../../lib') = roblox.require './../../lib'
 local shim = roblox
 
 local helpers = require './helpers'
+local maketest = helpers.maketest
+local record = helpers.record
 local suite = helpers.suite
 local unique = helpers.unique
 
@@ -48,6 +50,31 @@ suite('free', function(s)
 		t.eq(resave.free(session), nil)
 
 		t.eq(shim.stores[name].data.p1.data, { coins = 5 })
+		t.eq(st.tracking.p1, nil)
+	end)
+
+	s:case('flushes_pending_updates_to_both_branches_while_pendingtx_unexpired', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+
+		local err, session = resave.track(st, 'p1')
+		assert(session, err)
+
+		maketest('tx-live', {})
+		shim.stores[name].data.p1 = record(
+			{ coins = 1 },
+			0,
+			{ id = 'tx-live', newdata = { coins = 9 }, version = 0, cooltimestamp = 0 }
+		)
+
+		resave.queueupdate(session, function(d)
+			d.coins += 5
+		end)
+
+		t.eq(resave.free(session), nil)
+
+		t.eq(shim.stores[name].data.p1.data, { coins = 6 })
+		t.eq(shim.stores[name].data.p1.pendingtx.newdata, { coins = 14 })
 		t.eq(st.tracking.p1, nil)
 	end)
 

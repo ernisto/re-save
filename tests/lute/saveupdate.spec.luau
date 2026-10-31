@@ -3,6 +3,8 @@ local resave: typeof(require '../../lib') = roblox.require './../../lib'
 local shim = roblox
 
 local helpers = require './helpers'
+local maketest = helpers.maketest
+local record = helpers.record
 local suite = helpers.suite
 local unique = helpers.unique
 
@@ -30,5 +32,25 @@ suite('saveupdate', function(s)
 
 		t.strContains(err, 'boom')
 		t.eq(shim.stores[name].data.p1.data, { coins = 0 })
+	end)
+
+	s:case('applies_to_both_branches_while_pendingtx_unexpired', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+		maketest('tx-live', {})
+		shim.stores[name].data.p1 = record(
+			{ coins = 5 },
+			0,
+			{ id = 'tx-live', newdata = { coins = 9 }, version = 0, cooltimestamp = 0 }
+		)
+
+		local err = resave.saveupdate(st, 'p1', function(d)
+			d.coins += 1
+		end)
+
+		t.eq(err, nil)
+		t.eq(shim.stores[name].data.p1.data, { coins = 6 })
+		t.eq(shim.stores[name].data.p1.pendingtx.id, 'tx-live')
+		t.eq(shim.stores[name].data.p1.pendingtx.newdata, { coins = 10 })
 	end)
 end)
