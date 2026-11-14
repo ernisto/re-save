@@ -8,6 +8,13 @@ local helpers = require './helpers'
 local suite = helpers.suite
 local unique = helpers.unique
 
+local function haswarning(needle: string): boolean
+	for _, warning in shim.warnings do
+		if string.find(warning, needle, 1, true) then return true end
+	end
+	return false
+end
+
 local function add(amount: number)
 	return function(d)
 		d.coins += amount
@@ -108,5 +115,43 @@ suite('sync', function(s)
 
 		t.eq(resave.free(session), nil)
 		t.eq(shim.stores[name].data.p1.data, { coins = 1 })
+	end)
+
+	s:case('livesync_warns_when_sync_fails', function(t)
+		local name = unique()
+		local key = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+
+		local err, session = resave.track(st, key)
+		assert(session, err)
+
+		shim.stores[name]._failupdate = true
+		resave.queueupdate(session, add(1))
+
+		local deadline = os.clock() + 3
+		while not haswarning(`[livesync] fail to sync '{key}'`) and os.clock() < deadline do
+			task.wait()
+		end
+		shim.stores[name]._failupdate = nil
+
+		t.that(haswarning(`[livesync] fail to sync '{key}'`), 'expected livesync warning')
+		t.eq(resave.free(session), nil)
+	end)
+
+	-- runs last: closing cancels the background sync loop
+	s:case('close_warns_when_save_fails', function(t)
+		local name = unique()
+		local key = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+
+		local err, session = resave.track(st, key)
+		assert(session, err)
+
+		shim.stores[name]._failupdate = true
+		resave.queueupdate(session, add(1))
+		shim.close()
+		shim.stores[name]._failupdate = nil
+
+		t.that(haswarning(`[bindtoclose] fail to save '{key}'`), 'expected bindtoclose warning')
 	end)
 end)

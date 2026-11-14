@@ -14,6 +14,10 @@ local root = `{dir}/../../lib`
 -- vars
 local guidcount = 0
 local handles = {}
+local closers = {}
+local warnings = {}
+local robloxtask = table.clone(task)
+robloxtask.cancel = coroutine.close
 local sources = {}
 
 -- functions
@@ -97,11 +101,16 @@ local env = {
 		GetService = function(_, name)
 			return getservice(name)
 		end,
-		BindToClose = function() end,
+		BindToClose = function(_, fn)
+			table.insert(closers, fn)
+		end,
 	},
-	warn = print,
+	warn = function(...)
+		table.insert(warnings, table.concat({ ... }, ' '))
+		print(...)
+	end,
 	Enum = { DataStoreRequestType = { UpdateAsync = 'update' } },
-	task = task,
+	task = robloxtask,
 
 	assert = assert,
 	error = error,
@@ -175,6 +184,12 @@ end
 return table.freeze {
 	require = env.require,
 	stores = handles,
+	warnings = warnings,
+	close = function()
+		for _, fn in closers do
+			fn()
+		end
+	end,
 	guidpeek = function()
 		return `guid-{guidcount + 1}`
 	end,

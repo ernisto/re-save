@@ -191,7 +191,8 @@ local livesync = task.spawn(function()
 		end
 
 		storage.awaitbudget()
-		sync.reconcilecloudandtx(s)
+		local err = sync.reconcilecloudandtx(s)
+		if err then warn(`[livesync] fail to sync '{s.key}'\n{err}`) end
 
 		task.wait(1 / storage.budgetwindow)
 	end
@@ -199,9 +200,10 @@ end)
 game:BindToClose(function()
 	task.cancel(livesync)
 
-	for name, st in session.stores do
+	for _, st in session.stores do
 		for key, s in st.tracking do
-			free(s)
+			local err = free(s)
+			if err then warn(`[bindtoclose] fail to save '{key}'\n{err}`) end
 		end
 	end
 end)
