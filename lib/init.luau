@@ -59,10 +59,9 @@ local function view<T>(st: store<T>, key: string): (string?, T?)
 
 		return readerr, nil
 	end
-	local cacheddata = loaded and loaded.data
 
 	local err, value = storage.awaitget(st.ds, key)
-	if err then return err, cacheddata end
+	if err then return err, nil end
 	if value == nil then return nil, nil end
 
 	return nil, record.working(st.schema, value).data
