@@ -55,6 +55,28 @@ local function newdatastore(id)
 	return ds
 end
 
+-- like HttpService:JSONEncode: plain data only; vectors, functions and other
+-- engine values raise. Strings keep their bytes, so non-ASCII text shows up as a
+-- longer byte length. `__jsonfail` stays as a test marker.
+local function encodejson(value: any): string
+	local kind = type(value)
+	if kind == 'nil' then return 'null' end
+	if kind == 'boolean' or kind == 'number' then return tostring(value) end
+	if kind == 'string' then return string.format('%q', value) end
+
+	if kind == 'table' then
+		if value.__jsonfail then error 'invalid json' end
+		local parts = {}
+		for k, v in value do
+			table.insert(parts, encodejson(tostring(k)) .. ':' .. encodejson(v))
+		end
+		table.sort(parts)
+		return '{' .. table.concat(parts, ',') .. '}'
+	end
+
+	error(`Can't convert {typeof(value)} to JSON`)
+end
+
 local function getservice(name)
 	if name == 'DataStoreService' then
 		return {
@@ -78,9 +100,8 @@ local function getservice(name)
 				return `guid-{guidcount}`
 			end,
 			JSONEncode = function(_, value)
-				if type(value) ~= 'table' or value.__jsonfail then error 'invalid json' end
-				if value.__nonascii then return 'héllo' end
-				return 'json'
+				if type(value) == 'table' and value.__nonascii then return 'héllo' end
+				return encodejson(value)
 			end,
 		} :: any
 	end
@@ -138,6 +159,7 @@ local env = {
 	utf8 = utf8,
 	bit32 = bit32,
 	buffer = buffer,
+	vector = vector,
 	debug = debug,
 }
 
