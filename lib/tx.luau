@@ -4,6 +4,7 @@ local utils = require './utils'
 -- defs
 local txstore = storage.store 'tx'
 local RESOLVE_COOLDOWN = 10
+local COMMIT_TIMEOUT = 5 * 60
 
 type tx = { state: txstate, committimeout: number, adopts: { [string]: boolean } }
 type txstate = 'pending' | 'aborted' | 'commited'
@@ -19,7 +20,7 @@ local function awaitcreatetx(ids: { string }): (string?, string?)
 
 	local err = storage.awaitupdate(txstore, txid, function(existing): tx
 		assert(existing == nil, `a transaction with same id '{txid}' already exists`)
-		return { state = 'pending', adopts = adopts, committimeout = os.time() + 5 * 60 }
+		return { state = 'pending', adopts = adopts, committimeout = os.time() + COMMIT_TIMEOUT }
 	end)
 	if err then return err, nil end
 	return nil, txid
@@ -61,7 +62,7 @@ local function awaitadopttx(txid: string, adopterids: { string }): string?
 
 		return tx
 	end)
-	if err then return err, nil end
+	if err then return err end
 	if tx == nil then return nil end
 
 	for _, adopted in tx.adopts do
