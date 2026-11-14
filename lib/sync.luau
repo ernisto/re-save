@@ -59,7 +59,7 @@ local function reconcilecloud<T>(
 	if not writeerr then syncloop.dequeue(s) end
 
 	if upstream then
-		table.move(s.pendingupdates, successedrebases + 1, #s.pendingupdates + 1, 1)
+		s.pendingupdates = table.move(s.pendingupdates, successedrebases + 1, #s.pendingupdates, 1, {})
 		s.base = utils.deepfreeze(upstream.data)
 		s.data = utils.deepfreeze((operation.rebase(s.pendingupdates, s.base)))
 	end
