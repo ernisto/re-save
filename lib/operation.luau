@@ -12,7 +12,7 @@ local function cloneapply<T>(base: T, op: operation<T>): (string?, T?)
 	if err then return `[cloneapply] execution failed:\n{err}`, nil end
 	local result = outdata or mutbase
 
-	local ok, json = pcall(utils.json, mutbase)
+	local ok, json = pcall(utils.json, result)
 	if not ok then return `[cloneapply] result not savable as json:\n{json}`, nil end
 
 	if utf8.len(json) ~= string.len(json) then return '[cloneapply] result contains non-ascii characters', nil end

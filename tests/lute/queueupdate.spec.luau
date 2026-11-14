@@ -80,6 +80,20 @@ suite('queueupdate', function(s)
 		end, 'not savable as json')
 	end)
 
+	s:case('rejects_unserializable_returned_value', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema {} })
+
+		local err, session = resave.track(st, 'p1')
+		assert(session, err)
+
+		throwscontains(t, function()
+			resave.queueupdate(session, function()
+				return { __jsonfail = true }
+			end)
+		end, 'not savable as json')
+	end)
+
 	s:case('rejects_non_ascii_result', function(t)
 		local name = unique()
 		local st = resave.store(name, { schema = resave.schema {} })
