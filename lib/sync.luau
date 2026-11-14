@@ -58,7 +58,8 @@ local function reconcilecloud<T>(
 	local writeerr = if upstream == nil then nil else dserr or innererr
 	if not writeerr then syncloop.dequeue(s) end
 
-	if upstream then
+	-- updates queued during the yield stay pending; a failed write keeps all of them
+	if upstream and not dserr then
 		s.pendingupdates = table.move(s.pendingupdates, successedrebases + 1, #s.pendingupdates, 1, {})
 		s.base = utils.deepfreeze(upstream.data)
 		s.data = utils.deepfreeze((operation.rebase(s.pendingupdates, s.base)))

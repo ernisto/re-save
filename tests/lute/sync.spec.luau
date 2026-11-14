@@ -80,4 +80,33 @@ suite('sync', function(s)
 		t.eq(session.data, { coins = 13 })
 		t.eq(shim.stores[name].data.p1.data, { coins = 3 })
 	end)
+
+	s:case('failed_write_keeps_updates_pending', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+
+		local err, session = resave.track(st, 'p1')
+		assert(session, err)
+
+		resave.queueupdate(session, add(1))
+
+		local ds = shim.stores[name]
+		local realupdate = ds.UpdateAsync
+		function ds:UpdateAsync(key, update)
+			realupdate(self, key, function(value)
+				update(value)
+				error 'write failed'
+			end)
+		end
+
+		local freeerr = resave.free(session)
+		ds.UpdateAsync = realupdate
+
+		t.strContains(tostring(freeerr), 'write failed')
+		t.eq(#session.pendingupdates, 1)
+		t.eq(session.data, { coins = 1 })
+
+		t.eq(resave.free(session), nil)
+		t.eq(shim.stores[name].data.p1.data, { coins = 1 })
+	end)
 end)
