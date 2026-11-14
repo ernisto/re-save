@@ -37,9 +37,14 @@ local function awaitbudget()
 	return DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.UpdateAsync)
 end
 
-local function awaitget<T>(ds: DataStore, key: string): (string?, T?)
+local function awaitlocked<T>(
+	ds: DataStore,
+	key: string,
+	method: (DataStore, string, ...any) -> T,
+	...: any
+): (string?, T?)
 	awaitlock(ds, key)
-	local success, result = xpcall(ds.GetAsync, debug.traceback :: any, ds, key)
+	local success, result = xpcall(method, debug.traceback :: any, ds, key, ...)
 	unlock(ds, key)
 
 	if success then
@@ -47,28 +52,16 @@ local function awaitget<T>(ds: DataStore, key: string): (string?, T?)
 	else
 		return result, nil
 	end
+end
+
+local function awaitget<T>(ds: DataStore, key: string): (string?, T?)
+	return awaitlocked(ds, key, ds.GetAsync :: any)
 end
 local function awaitupdate<T>(ds: DataStore, key: string, update: (any) -> T?): (string?, T?)
-	awaitlock(ds, key)
-	local success, result = xpcall(ds.UpdateAsync, debug.traceback :: any, ds, key, update)
-	unlock(ds, key)
-
-	if success then
-		return nil, result
-	else
-		return result, nil
-	end
+	return awaitlocked(ds, key, ds.UpdateAsync :: any, update)
 end
 local function awaitremove<T>(ds: DataStore, key: string): (string?, T?)
-	awaitlock(ds, key)
-	local success, result = xpcall(ds.RemoveAsync, debug.traceback :: any, ds, key)
-	unlock(ds, key)
-
-	if success then
-		return nil, result
-	else
-		return result, nil
-	end
+	return awaitlocked(ds, key, ds.RemoveAsync :: any)
 end
 
 -- export
