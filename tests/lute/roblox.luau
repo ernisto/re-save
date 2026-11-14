@@ -17,18 +17,29 @@ local handles = {}
 local sources = {}
 
 -- functions
+-- roblox serializes every value, so callers never share tables with the store
+local function deepcopy(value: any): any
+	if type(value) ~= 'table' then return value end
+
+	local out = {}
+	for k, v in value do
+		out[k] = deepcopy(v)
+	end
+	return out
+end
+
 local function newdatastore(id)
 	local ds: any = { id = id, data = {} }
 
 	function ds:GetAsync(key)
 		if ds._failget then error 'get failed' end
-		return ds.data[key]
+		return deepcopy(ds.data[key])
 	end
 	function ds:UpdateAsync(key, update)
 		if ds._failupdate then error 'update failed' end
-		local new = update(ds.data[key])
-		if new ~= nil then ds.data[key] = new end
-		return new
+		local new = update(deepcopy(ds.data[key]))
+		if new ~= nil then ds.data[key] = deepcopy(new) end
+		return deepcopy(new)
 	end
 	function ds:RemoveAsync(key)
 		if ds._failremove then error 'remove failed' end
