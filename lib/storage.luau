@@ -26,8 +26,8 @@ local function unlock(ds: DataStore, key: string)
 
 	table.remove(working[ds][key], 1)
 
-	if next(working[ds][key]) then working[ds][key] = nil end
-	if next(working[ds]) then working[ds] = nil end
+	if next(working[ds][key]) == nil then working[ds][key] = nil end
+	if next(working[ds]) == nil then working[ds] = nil end
 end
 
 local function awaitbudget()
