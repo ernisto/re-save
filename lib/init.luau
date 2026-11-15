@@ -119,67 +119,54 @@ local function locktx<T>(s: session<T>, txid: string, update: op<T>): (string?, 
 		}
 	end)
 end
--- tests every update on the current cloud data before any record is locked
-local function batchpretest(updates: { [session]: op }): string?
-	local remaining = 0
-	local firsterr: string?
+local function batchrun(sessions: { session }, job: (session) -> string?): (string?, { session })
+	local remaining = #sessions
+	local errs = {}
 
-	for s, update in updates do
-		remaining += 1
+	for i, s in sessions do
 		task.spawn(function()
-			local err, upstream = sync.fetchcloud(s)
-			if upstream then
-				local base = operation.rebase(s.pendingupdates, upstream.data)
-				err = operation.cloneapply(base, update)
-			end
-			firsterr = firsterr or err
+			errs[i] = job(s) or false
 			remaining -= 1
 		end)
 	end
-
 	while remaining > 0 do
 		task.wait()
 	end
+
+	local firsterr: string?
+	local oks: { session } = {}
+	for i, s in sessions do
+		if errs[i] then
+			firsterr = firsterr or errs[i]
+		else
+			table.insert(oks, s)
+		end
+	end
+	return firsterr, oks
+end
+local function batchpretest(sessions: { session }, updates: { [session]: op }): string?
+	local firsterr = batchrun(sessions, function(s)
+		local err, upstream = sync.fetchcloud(s)
+		if not upstream then return err end
+
+		local base = operation.rebase(s.pendingupdates, upstream.data)
+		return (operation.cloneapply(base, updates[s]))
+	end)
 	return firsterr
 end
 local function batchlocktx(sessions: { session }, txid: string, updates: { [session]: op }): (string?, { session })
-	local remainingsaves = #sessions
-	local lockeds: { session } = {}
-	local firsterr: string?
-
-	for s, update in updates do
-		task.spawn(function()
-			local err = locktx(s, txid, update)
-			firsterr = firsterr or err
-			remainingsaves -= 1
-
-			if err == nil then table.insert(lockeds, s) end
-		end)
-	end
-
-	while remainingsaves > 0 do
-		task.wait()
-	end
-	return firsterr, lockeds
+	return batchrun(sessions, function(s)
+		return (locktx(s, txid, updates[s]))
+	end)
 end
 local function batchadopt(sessions: { session }, txid: string, commited: boolean): { session }
-	local remainingsyncs = #sessions
-	local doneadopts = {}
+	local _, doneadopts = batchrun(sessions, function(s)
+		local txupdate = record.txsolver(s.store.schema, txid, commited)
+		local readerr, writeerr = sync.reconcilecloud(s, nil, txupdate)
 
-	for _, s in sessions do
-		task.spawn(function()
-			local txupdate = record.txsolver(s.store.schema, txid, commited)
-			local readerr, writeerr = sync.reconcilecloud(s, nil, txupdate)
-
-			-- a record that failed to adopt keeps the tx alive, so it resolves on its next load
-			if not readerr and not writeerr then table.insert(doneadopts, s) end
-			remainingsyncs -= 1
-		end)
-	end
-
-	while remainingsyncs > 0 do
-		task.wait()
-	end
+		-- a record that failed to adopt keeps the tx alive, so it resolves on its next load
+		return readerr or writeerr
+	end)
 	return doneadopts
 end
 local function awaitsavebatch(builder: (update: <T>(store<T>, key: string, update: (T) -> ()) -> ()) -> ()): string?
@@ -202,7 +189,7 @@ local function awaitsavebatch(builder: (update: <T>(store<T>, key: string, updat
 	end
 	builder(queueupdate)
 
-	local testerr = batchpretest(updates)
+	local testerr = batchpretest(ss, updates)
 	if testerr then return testerr end
 
 	local err, txid = tx.awaitcreate(sessionids)

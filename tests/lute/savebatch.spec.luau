@@ -248,4 +248,43 @@ suite('savebatch', function(s)
 		t.eq(next(txstore.data), nil)
 		t.eq(shim.stores[name].data.a, record({ coins = 0 }, 0))
 	end)
+
+	s:case('locks_and_reports_errors_in_queue_order', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+		local keys = { 'k1', 'k2', 'k3', 'k4', 'k5', 'k6', 'k7', 'k8' }
+
+		local ds = shim.stores[name]
+		local realupdate = ds.UpdateAsync
+		local order = {}
+		ds.UpdateAsync = function(self, key, fn)
+			table.insert(order, key)
+			return realupdate(self, key, fn)
+		end
+		local err = resave.savebatch(function(queue)
+			for _, key in keys do
+				queue(st, key, function(d)
+					d.coins += 1
+				end)
+			end
+		end)
+		ds.UpdateAsync = realupdate
+
+		-- the locks come first, then the adopts, each in queue order
+		t.eq(err, nil)
+		t.eq(table.move(order, 1, #keys, 1, {}), keys)
+		t.eq(table.move(order, #keys + 1, 2 * #keys, 1, {}), keys)
+
+		-- with two failing updates, the first queued one is reported
+		local err2 = resave.savebatch(function(queue)
+			queue(st, 'k1', function()
+				error 'first'
+			end)
+			queue(st, 'k2', function()
+				error 'second'
+			end)
+		end)
+		assert(err2)
+		t.strContains(err2, 'first')
+	end)
 end)
