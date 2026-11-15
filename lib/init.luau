@@ -63,11 +63,13 @@ local function view<T>(st: store<T>, key: string): (string?, T?)
 		return readerr, if saved then saved.data else nil
 	end
 
-	local err, value = storage.awaitget(st.ds, key)
-	if err then return err, nil end
-	if value == nil then return nil, nil end
+	local err, cloud = storage.awaitget(st.ds, key)
+	if err or not cloud then return err, nil end
 
-	return nil, record.working(st.schema, value).data
+	local ok, result = pcall(record.working, st.schema, cloud)
+	if not ok then return `[view] {result}`, nil end
+
+	return nil, result.data
 end
 
 local function update<T>(s: session<T>, update: (T) -> ())

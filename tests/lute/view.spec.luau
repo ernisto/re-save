@@ -101,4 +101,16 @@ suite('view', function(s)
 		t.eq(#session.pendingupdates, 1)
 		t.eq(session.data, { coins = 5 })
 	end)
+
+	s:case('view_untracked_fails_outdated_when_version_ahead', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema {} })
+		shim.stores[name].data.p1 = record({}, 5)
+
+		local ok, err, data = pcall(resave.view, st, 'p1')
+
+		t.that(ok, 'view must not throw')
+		t.strContains(err, 'outdated base')
+		t.eq(data, nil)
+	end)
 end)
