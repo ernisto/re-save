@@ -41,6 +41,11 @@ local function awaitcommittx(txid: string): string?
 			writeerr = 'already aborted'
 			return nil
 		end
+		-- past the timeout, other servers resolve the locks as aborted
+		if os.time() >= tx.committimeout then
+			writeerr = 'commit timed out'
+			return nil
+		end
 		tx.state = 'commited'
 		return tx
 	end)

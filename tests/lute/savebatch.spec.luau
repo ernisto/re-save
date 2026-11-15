@@ -223,4 +223,29 @@ suite('savebatch', function(s)
 		assert(session, terr)
 		t.eq(session.data, { coins = 4 })
 	end)
+
+	s:case('aborts_when_commit_comes_after_timeout', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+
+		-- tx store: 2nd update is the commit; expire the tx right before it
+		local realupdate = txstore.UpdateAsync
+		local calls = 0
+		txstore.UpdateAsync = function(self, key, fn)
+			calls += 1
+			if calls == 2 then txstore.data[key].committimeout = os.time() - 1 end
+			return realupdate(self, key, fn)
+		end
+		local err = resave.savebatch(function(queue)
+			queue(st, 'a', function(d)
+				d.coins += 3
+			end)
+		end)
+		txstore.UpdateAsync = realupdate
+		assert(err)
+
+		t.strContains(err, 'commit timed out')
+		t.eq(next(txstore.data), nil)
+		t.eq(shim.stores[name].data.a, record({ coins = 0 }, 0))
+	end)
 end)
