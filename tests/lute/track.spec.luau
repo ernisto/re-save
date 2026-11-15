@@ -86,16 +86,18 @@ suite('track', function(s)
 		t.eq(st.tracking.p1, nil)
 	end)
 
-	s:case('track_uses_default_for_non_record_value', function(t)
+	s:case('track_fails_and_keeps_non_record_value', function(t)
 		local name = unique()
 		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
 		shim.stores[name].data.p1 = 'garbage'
 
 		local err, session = resave.track(st, 'p1')
-		assert(session)
+		assert(err)
 
-		t.eq(err, nil)
-		t.eq(session.data, { coins = 0 })
+		t.strContains(err, 'not a record')
+		t.eq(session, nil)
+		t.eq(st.tracking.p1, nil)
+		t.eq(shim.stores[name].data.p1, 'garbage')
 	end)
 
 	s:case('track_fails_and_untracks_when_updateasync_fails', function(t)
