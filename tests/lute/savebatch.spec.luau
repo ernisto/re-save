@@ -187,4 +187,40 @@ suite('savebatch', function(s)
 		t.eq(next(txstore.data), nil)
 		t.eq(shim.stores[name].data.a, record({ coins = 0 }, 0))
 	end)
+
+	s:case('keeps_tx_when_an_adopt_write_fails', function(t)
+		local a, b = unique(), unique()
+		local sa = resave.store(a, { schema = resave.schema { coins = 0 } })
+		local sb = resave.store(b, { schema = resave.schema { coins = 0 } })
+
+		-- store b: 1st update locks, 2nd adopts; the adopt runs its callback, then the write fails
+		local dsb = shim.stores[b]
+		local realupdate = dsb.UpdateAsync
+		local calls = 0
+		dsb.UpdateAsync = function(self, key, fn)
+			calls += 1
+			if calls ~= 2 then return realupdate(self, key, fn) end
+			fn(table.clone(dsb.data[key]))
+			error 'adopt failed'
+		end
+		local err = resave.savebatch(function(queue)
+			queue(sa, 'a', function(d)
+				d.coins += 3
+			end)
+			queue(sb, 'b', function(d)
+				d.coins += 4
+			end)
+		end)
+		dsb.UpdateAsync = realupdate
+
+		t.eq(err, nil)
+		t.eq(shim.stores[a].data.a, record({ coins = 3 }, 0))
+		-- b is still locked, and its tx stays committed, so the trade lands on its next load
+		local txid = shim.stores[b].data.b.pendingtx.id
+		t.eq(txstore.data[txid].state, 'commited')
+
+		local terr, session = resave.track(sb, 'b')
+		assert(session, terr)
+		t.eq(session.data, { coins = 4 })
+	end)
 end)

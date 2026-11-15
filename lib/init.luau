@@ -160,9 +160,10 @@ local function batchadopt(sessions: { session }, txid: string, commited: boolean
 	for _, s in sessions do
 		task.spawn(function()
 			local txupdate = record.txsolver(s.store.schema, txid, commited)
-			local err = sync.reconcilecloud(s, nil, txupdate)
+			local readerr, writeerr = sync.reconcilecloud(s, nil, txupdate)
 
-			if err == nil then table.insert(doneadopts, s) end
+			-- a record that failed to adopt keeps the tx alive, so it resolves on its next load
+			if not readerr and not writeerr then table.insert(doneadopts, s) end
 			remainingsyncs -= 1
 		end)
 	end
