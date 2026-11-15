@@ -41,15 +41,18 @@ local function free<T>(s: session<T>): string?
 	if not session.istracked(s) then return nil end
 	syncloop.dequeue(s)
 
+	local droperr
 	if #s.pendingupdates > 0 then
-		local err = sync.reconcilecloudandtx(s)
+		local err
+		err, _, droperr = sync.reconcilecloudandtx(s)
 		if err then return err end
 	end
 
 	s.store.tracking[s.key] = nil
 	table.freeze(s)
 
-	return nil
+	-- saved and freed, but some updates no longer applied to the cloud data
+	return droperr
 end
 local function view<T>(st: store<T>, key: string): (string?, T?)
 	local loaded: session<T> = st.tracking[key]

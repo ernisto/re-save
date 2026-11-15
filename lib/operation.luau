@@ -28,14 +28,18 @@ local function cloneapply<T>(base: T, op: operation<T>): (string?, T?)
 
 	return nil, result
 end
-local function rebase<T>(oplog: { operation<T> }, base: T): (T, number)
+-- returns the rebased data, how many ops were consumed, and why any were dropped
+local function rebase<T>(oplog: { operation<T> }, base: T): (T, number, string?)
 	local successed = 0
+	local dropped: string?
 	for i, op in oplog do
 		local err, result = cloneapply(base, op)
 
 		if err then
 			local path, line = debug.info(op, 'sl')
-			warn(`[rebase] fail to apply update #{i} ({path}:{line})\n{err}`)
+			local msg = `[rebase] fail to apply update #{i} ({path}:{line})\n{err}`
+			dropped = if dropped then `{dropped}\n{msg}` else msg
+			warn(msg)
 		elseif result then
 			base = result
 		else
@@ -44,7 +48,7 @@ local function rebase<T>(oplog: { operation<T> }, base: T): (T, number)
 
 		successed += 1
 	end
-	return base, successed
+	return base, successed, dropped
 end
 
 -- module

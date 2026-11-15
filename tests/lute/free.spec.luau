@@ -97,7 +97,7 @@ suite('free', function(s)
 		t.eq(st.tracking.p1, session)
 	end)
 
-	s:case('skips_flush_that_fails_against_new_cloud_data', function(t)
+	s:case('frees_and_returns_error_for_update_that_fails_on_new_cloud_data', function(t)
 		local name = unique()
 		local st = resave.store(name, { schema = resave.schema { x = 0 } })
 
@@ -111,8 +111,11 @@ suite('free', function(s)
 		-- cloud data changes shape underneath so the queued op no longer applies
 		shim.stores[name].data.p1.data = {}
 		local err2 = resave.free(session)
+		assert(err2)
 
-		t.eq(err2, nil)
+		-- saved and freed without it, but the caller learns the update was dropped
+		t.strContains(err2, '[rebase] fail to apply update #1')
+		t.eq(resave.istracked(session), false)
 		t.eq(shim.stores[name].data.p1.data, {})
 	end)
 end)

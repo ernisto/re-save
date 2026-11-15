@@ -25,8 +25,9 @@ local function reconcilecloud<T>(
 	s: session<T>,
 	job: nil | (record<T>) -> (),
 	txupdate: nil | (record<T>) -> ()
-): (string?, string?, record<T>?)
+): (string?, string?, record<T>?, string?)
 	local successedrebases = 0
+	local droperr
 	local upstream
 
 	local innererr
@@ -38,7 +39,7 @@ local function reconcilecloud<T>(
 
 		local lockedtx = upstream.pendingtx
 		if lockedtx then lockedtx.newdata = operation.rebase(s.pendingupdates, lockedtx.newdata) end
-		upstream.data, successedrebases = operation.rebase(s.pendingupdates, upstream.data)
+		upstream.data, successedrebases, droperr = operation.rebase(s.pendingupdates, upstream.data)
 
 		if not job then return upstream end
 		local newupstream = utils.deepclone(upstream)
@@ -65,7 +66,7 @@ local function reconcilecloud<T>(
 		s.data = utils.deepfreeze((operation.rebase(s.pendingupdates, s.base)))
 	end
 
-	return readerr, writeerr, upstream
+	return readerr, writeerr, upstream, if dserr then nil else droperr
 end
 
 -- resolves a stale tx lock; never reruns the caller's job, it was already applied to both branches
@@ -85,8 +86,9 @@ local function handletxlock<T>(s: session<T>, curtx: record.txlock<T>): (string?
 	return newtxerr, upstream
 end
 
-local function reconcilecloudandtx<T>(s: session<T>, job: nil | (record<T>) -> ()): (string?, record<T>?)
-	local readerr, writeerr, upstream
+-- 3rd return: why pending updates were saved without some of them (they failed on the cloud data)
+local function reconcilecloudandtx<T>(s: session<T>, job: nil | (record<T>) -> ()): (string?, record<T>?, string?)
+	local readerr, writeerr, upstream, droperr
 
 	if job == nil and #s.pendingupdates == 0 then
 		readerr, upstream = fetchcloud(s)
@@ -95,7 +97,7 @@ local function reconcilecloudandtx<T>(s: session<T>, job: nil | (record<T>) -> (
 		s.base = utils.deepfreeze(upstream.data)
 		s.data = s.base
 	else
-		readerr, writeerr, upstream = reconcilecloud(s, job)
+		readerr, writeerr, upstream, droperr = reconcilecloud(s, job)
 	end
 
 	if upstream == nil then return readerr, nil end
@@ -109,7 +111,7 @@ local function reconcilecloudandtx<T>(s: session<T>, job: nil | (record<T>) -> (
 		end)
 	end
 
-	return writeerr, upstream
+	return writeerr, upstream, droperr
 end
 
 -- module
