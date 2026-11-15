@@ -287,4 +287,33 @@ suite('savebatch', function(s)
 		assert(err2)
 		t.strContains(err2, 'first')
 	end)
+
+	s:case('pretests_tracked_sessions_on_cached_data', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+		local _, sa = resave.track(st, 'a')
+		assert(sa)
+
+		local ds = shim.stores[name]
+		local realget = ds.GetAsync
+		local gets = 0
+		ds.GetAsync = function(self, key)
+			gets += 1
+			return realget(self, key)
+		end
+		local err = resave.savebatch(function(queue)
+			queue(st, 'a', function(d)
+				d.coins += 1
+			end)
+			queue(st, 'b', function(d)
+				d.coins += 1
+			end)
+		end)
+		ds.GetAsync = realget
+
+		-- only the untracked key is read before locking
+		t.eq(err, nil)
+		t.eq(gets, 1)
+		t.eq(sa.data, { coins = 1 })
+	end)
 end)

@@ -146,6 +146,9 @@ local function batchrun(sessions: { session }, job: (session) -> string?): (stri
 end
 local function batchpretest(sessions: { session }, updates: { [session]: op }): string?
 	local firsterr = batchrun(sessions, function(s)
+		-- a stale cache only fails later, at the lock, which tests on cloud data again
+		if session.istracked(s) then return (operation.cloneapply(s.data, updates[s])) end
+
 		local err, upstream = sync.fetchcloud(s)
 		if not upstream then return err end
 
