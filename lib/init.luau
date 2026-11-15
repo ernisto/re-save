@@ -54,10 +54,13 @@ end
 local function view<T>(st: store<T>, key: string): (string?, T?)
 	local loaded: session<T> = st.tracking[key]
 	if loaded then
-		local readerr, cloud = sync.reconcilecloudandtx(loaded)
-		if cloud then return nil, cloud.data end
+		-- a failed save stays queued for livesync; the caller gets what is really in the cloud
+		local err, cloud = sync.reconcilecloudandtx(loaded)
+		if not cloud then return err, nil end
+		if not err then return nil, cloud.data end
 
-		return readerr, nil
+		local readerr, saved = sync.fetchcloud(loaded)
+		return readerr, if saved then saved.data else nil
 	end
 
 	local err, value = storage.awaitget(st.ds, key)

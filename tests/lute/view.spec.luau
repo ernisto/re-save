@@ -73,4 +73,32 @@ suite('view', function(s)
 		t.strContains(err, 'get failed')
 		t.eq(data, nil)
 	end)
+
+	s:case('view_tracked_returns_cloud_data_when_save_fails', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+
+		local _, session = resave.track(st, 'p1')
+		assert(session)
+		resave.queueupdate(session, function(d)
+			d.coins += 5
+		end)
+
+		-- the callback runs, then the write fails
+		local ds = shim.stores[name]
+		local realupdate = ds.UpdateAsync
+		ds.UpdateAsync = function(self, key, fn)
+			fn(table.clone(ds.data[key]))
+			error 'write failed'
+		end
+		local err, data = resave.view(st, 'p1')
+		ds.UpdateAsync = realupdate
+
+		-- the saved data, not the unsaved one; the update stays queued for the next save
+		t.eq(err, nil)
+		t.eq(data, { coins = 0 })
+		t.eq(ds.data.p1.data, { coins = 0 })
+		t.eq(#session.pendingupdates, 1)
+		t.eq(session.data, { coins = 5 })
+	end)
 end)
