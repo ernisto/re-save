@@ -46,10 +46,10 @@ jobs:
           token: ${{ github.token }}
 
       - name: Build rbxm
-        run: rojo build default.project.json -o defnet.rbxm
+        run: rojo build default.project.json -o resave.rbxm
 
       - name: Upload rbxm
         if: ${{github.event.release.tag_name}}
-        run: gh release upload ${{github.event.release.tag_name}} defnet.rbxm
+        run: gh release upload ${{github.event.release.tag_name}} resave.rbxm
         env:
           GH_TOKEN: ${{ github.token }}

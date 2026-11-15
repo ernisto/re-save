@@ -1,0 +1,61 @@
+/* walkthrough: every step with code pins a full-screen stage (title + text on top, code
+   fills the rest); invisible slots under it scroll by, one per beat */
+/* walks set the scroll themselves: the browser mustn't shift it when a title is first fitted */
+#steps { overflow-anchor: none; }
+.walk { position: relative; }
+.stage { position: sticky; top: var(--hdr); max-height: calc(100vh - var(--hdr)); box-sizing: border-box; padding: 20px 0 16px; display: flex; flex-direction: column; gap: 14px; background: var(--bg); z-index: 1; }
+.stage-text { flex: none; display: flex; flex-direction: column; gap: 8px; }
+.stage-lines { max-height: calc(3 * 1.65em + 0.7em); overflow: hidden; line-height: 1.65; }
+.stage-lines.more { mask-image: linear-gradient(to bottom, #000 calc(100% - 0.7em), transparent); }
+.stage-lines > .prose { gap: 10px; }
+/* panels: scripts and their output on the left, state (DataStore, memory, sessions) on the right */
+figure.codeblock.ds figcaption { color: var(--c-type); }
+figure.codeblock.ds pre.code { background: var(--raised); border-style: dashed; }
+figure.codeblock.out figcaption { color: var(--throws); }
+figure.codeblock.out pre.code { background: var(--raised); border-left: 3px solid var(--throws); border-radius: 0 8px 8px 0; }
+figure.codeblock.out pre.code.lines .ln { white-space: pre-wrap; overflow-wrap: anywhere; }
+.codecol { display: flex; flex-direction: column; gap: 10px; min-width: 0; flex: 1 1 0; }
+.codecol.states { flex: 0 1 auto; max-width: 48%; position: sticky; top: 0; }
+.codecol.states:only-child { flex: 1 1 0; max-width: none; }
+.codecol:empty { display: none; }
+@media (max-width: 900px) { .stage .codegroup { flex-direction: column; align-items: stretch; } .codecol { flex: none; } .codecol.states { position: static; max-width: none; } }
+pre.code.lines .ln.fold-mark { color: var(--muted); animation: fold-tail 0.35s ease-out; }
+.tut .stage pre.code.lines .ln.add { animation: line-in 0.28s ease-out; background: color-mix(in srgb, var(--ok) 16%, transparent); border-left-color: var(--ok); }
+.tut .stage pre.code.lines .ln.add.after-del { animation-delay: 0.4s; animation-fill-mode: backwards; }
+.stage .codegroup { flex: 0 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: thin; display: flex; align-items: flex-start; gap: 12px; }
+.stage .codegroup.measuring { flex: none; height: auto; width: max-content; }
+.stage .codegroup.measuring .codecol { flex: none; max-width: none; }
+/* output wraps, so it never widens the measure */
+.stage .codegroup.measuring figure.codeblock.out pre.code { width: 0; min-width: 100%; }
+.tut .stage .codegroup.measuring pre.code { transition: none; width: max-content; }
+.tut .stage pre.code { font-size: calc(13.5px * var(--zoom, 1)); overflow: hidden; }
+pre.code.lines .ln.folded { display: none; }
+.fold-tail { color: var(--muted); }
+.tut .stage pre.code { position: relative; isolation: isolate; }
+.hl-box { position: absolute; left: 0; right: 0; z-index: -1; opacity: 0; background: color-mix(in srgb, var(--accent) 16%, transparent); border-left: 3px solid var(--accent); transition: top 0.4s cubic-bezier(0.3, 0.7, 0.2, 1), height 0.4s cubic-bezier(0.3, 0.7, 0.2, 1), opacity 0.25s; }
+.hl-box.on { opacity: 1; }
+.stage-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 3; overflow: hidden; }
+.mark-box { position: absolute; opacity: 0; border-radius: 5px; box-shadow: 0 0 0 2px var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); transform-origin: left center; }
+.cover { position: absolute; opacity: 0; padding: 4px 10px; border: 1px solid var(--accent); border-radius: 7px; background: var(--raised); box-shadow: 0 6px 18px rgb(0 0 0 / 0.3); font: 14px/1.4 var(--font-mono); white-space: pre; transform-origin: left bottom; }
+.mark-box.on, .cover.on { opacity: 1; }
+/* "scroll down to start" under a resting title's code (placed by the script) */
+.walk-hint { position: absolute; opacity: 0; display: flex; align-items: center; gap: 8px; padding: 7px 16px; border-radius: 999px; background: var(--accent); color: var(--bg); font: 700 15px var(--font-body); white-space: nowrap; box-shadow: 0 6px 18px rgb(0 0 0 / 0.3); transition: opacity 0.2s; }
+.walk-hint.on { opacity: 1; }
+.walk-hint .arrow { display: inline-block; animation: hint-bob 1.2s ease-in-out infinite; }
+@keyframes hint-bob { 50% { transform: translateY(3px); } }
+@media (prefers-reduced-motion: reduce) { .walk-hint .arrow { animation: none; } }
+/* a new mark grows out from its first column; its card pops in after it */
+.mark-box.spawn { animation: mark-spawn 0.3s ease-out; }
+.cover.spawn { animation: cover-spawn 0.3s ease-out 0.15s backwards; }
+@keyframes mark-spawn { from { transform: scaleX(0); } }
+@keyframes cover-spawn { from { opacity: 0; transform: translateY(4px) scale(0.96); } }
+/* the slots sit under the stage (margin-top = -stage height, set once it's measured) */
+.slots { margin-top: -100vh; pointer-events: none; }
+.slot { height: 100px; } /* about one wheel notch per state */
+pre.code.lines .ln.folding { overflow: hidden; animation: line-fold 0.35s ease-in forwards; }
+@keyframes line-fold { to { max-height: 0; min-height: 0; opacity: 0; } }
+.fold-tail { animation: fold-tail 0.35s ease-out; }
+@keyframes fold-tail { from { opacity: 0; } }
+.beatref { border-radius: 4px; padding: 0 2px; margin: 0 -2px; transition: background 0.25s, color 0.25s; }
+.beatref.active { background: color-mix(in srgb, var(--accent) 22%, transparent); color: var(--ink); box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent); }
+@media (prefers-reduced-motion: reduce) { .beatref, .hl-box { transition: none; } .mark-box.spawn, .cover.spawn { animation: none; } }

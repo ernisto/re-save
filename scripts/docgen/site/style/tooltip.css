@@ -1,0 +1,13 @@
+/* snippet variables with a recorded value */
+.var { text-decoration: underline dotted var(--muted); text-underline-offset: 3px; cursor: help; border-radius: 3px; }
+.var:hover, .var:focus-visible { background: color-mix(in srgb, var(--accent) 18%, transparent); }
+.vartip {
+	position: fixed; z-index: 20; max-width: min(520px, calc(100vw - 16px)); max-height: calc(100vh - 16px); overflow: hidden;
+	background: var(--raised); color: var(--ink); border: 1px solid var(--line); border-radius: 8px;
+	box-shadow: 0 8px 24px rgb(0 0 0 / 0.28); padding: 8px 10px; pointer-events: none;
+}
+.vartip[hidden] { display: none; }
+.vartip-sig { font: 13px/1.5 var(--font-mono); margin-bottom: 4px; }
+.vartip-sum { margin: 0; font-size: 14px; color: var(--muted); }
+.vartip-name { font: 600 12px var(--font-mono); color: var(--c-param); margin-bottom: 4px; }
+.vartip pre { margin: 0; font-size: 12.5px; white-space: pre-wrap; word-break: break-word; max-height: 18em; overflow: hidden; }

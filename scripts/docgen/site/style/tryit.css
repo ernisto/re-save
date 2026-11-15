@@ -1,0 +1,80 @@
+/* try it */
+/* left: cases (tree collapsible) above the code sample; right: result.
+   Both columns pin to the top, are capped at the window height and scroll on their own. */
+.lab {
+	display: grid; gap: 16px; align-items: start;
+	grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+}
+.lab-left, .lab-result {
+	position: sticky; top: calc(var(--hdr) + var(--pin, 0px) + 16px); max-height: calc(100vh - var(--hdr) - var(--pin, 0px) - 32px);
+	overflow-y: auto; min-width: 0;
+}
+.lab-left { display: flex; flex-direction: column; gap: 16px; }
+.lab-left > .card { flex: none; }
+@media (max-width: 1100px) {
+	.lab { grid-template-columns: 1fr; }
+	.lab-left, .lab-result { position: static; max-height: none; overflow: visible; }
+}
+.card .body[hidden] { display: none; }
+.cases-head .combo { font-weight: 500; }
+.edge-note { flex-basis: 100%; font-size: 13.5px; color: var(--muted); }
+.edge-note:empty { display: none; }
+.store-host { border-bottom: 1px solid var(--line); }
+.store-panel { display: flex; flex-direction: column; gap: 6px; }
+.limit-note { margin: 6px 0 0; color: var(--ink); line-height: 1.5; }
+.limit-note code { background: var(--raised); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
+.edge-chip { font: 700 11px var(--font-body); text-transform: uppercase; letter-spacing: .05em; color: var(--warn); border: 1px solid var(--warn); border-radius: 999px; padding: 0 8px; margin-right: 4px; }
+.edge-chip.issue { color: var(--bug); border-color: var(--bug); }
+.edge-chip.limit { color: var(--err); border-color: var(--err); }
+.edge-chip.misuse { color: var(--throws); border-color: var(--throws); }
+.edge-chip.fix { color: var(--ok); border-color: var(--ok); }
+.card > header.cases-head { flex-wrap: wrap; row-gap: 6px; }
+.case-text { flex-basis: 100%; font-weight: 400; font-size: 14px; color: var(--muted); line-height: 1.5; display: flex; flex-direction: column; gap: 4px; }
+.case-text p { margin: 0; }
+.case-text .case-same { font-style: italic; }
+.case-rest { display: flex; flex-direction: column; gap: 4px; opacity: .75; }
+.case-rest[hidden] { display: none; }
+button.linkish { align-self: flex-start; background: none; border: none; padding: 0; color: var(--accent); font: 500 13px var(--font-body); cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.case-text code { background: var(--raised); border: 1px solid var(--line); border-radius: 5px; padding: 0 5px; }
+.card { border: 1px solid var(--line); border-radius: 10px; background: var(--box); min-width: 0; }
+.card > header { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); font-weight: 700; font-size: 15px; }
+.card > header .spacer { flex: 1; }
+.card .body { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; font-size: 15px; }
+.stack { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.btn { border: 1px solid var(--line); background: var(--raised); color: var(--ink); border-radius: 6px; padding: 3px 10px; font: 600 13px var(--font-body); cursor: pointer; }
+.btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+ul.tree, ul.tree ul { list-style: none; margin: 0; padding: 0; }
+ul.tree ul { margin-left: 22px; padding-left: 10px; border-left: 1px dashed var(--line); }
+ul.tree li { margin: 2px 0; }
+.tree label { display: flex; gap: 8px; align-items: flex-start; font-size: 14.5px; line-height: 1.4; padding: 3px 4px; border-radius: 5px; cursor: pointer; }
+.tree label:hover { background: var(--raised); }
+.tree input { margin: 2px 0 0; accent-color: var(--accent); flex: none; width: 15px; height: 15px; }
+.tree li.off > label { color: var(--muted); opacity: .55; cursor: not-allowed; }
+.tree .why { display: block; font-size: 12px; color: var(--muted); }
+.tree .group { margin: 2px 0; }
+/* round mark = pick at most one among its round siblings */
+.tree input.one {
+	appearance: none; -webkit-appearance: none; border-radius: 50%;
+	border: 1.5px solid var(--muted); background: var(--bg); cursor: pointer;
+	display: inline-grid; place-content: center;
+}
+.tree input.one::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--accent); transform: scale(0); transition: transform .12s ease-out; }
+.tree input.one:checked { border-color: var(--accent); }
+.tree input.one:checked::before { transform: scale(1); }
+.tree input.one:disabled { cursor: not-allowed; }
+
+a.caselink { color: inherit; text-decoration: underline dotted var(--accent); text-decoration-thickness: 2px; text-underline-offset: 4px; cursor: pointer; }
+a.caselink:hover { color: var(--accent); }
+.lab.flash .card { animation: lab-flash 1.2s ease-out; }
+@keyframes lab-flash { 0%, 30% { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); } 100% { box-shadow: none; } }
+@media (prefers-reduced-motion: reduce) { .lab.flash .card { animation: none; } .tree input.one::before { transition: none; } }
+.tree-empty, .empty { color: var(--muted); font-size: 14px; font-style: italic; }
+.combo { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+.outcome { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 1px 10px; color: var(--k); border: 1px solid var(--k); }
+.k-ok { --k: var(--ok); }
+.k-err { --k: var(--err); }
+.k-throws { --k: var(--throws); }
+.k-warn { --k: var(--warn); }

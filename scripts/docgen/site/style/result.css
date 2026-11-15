@@ -1,0 +1,25 @@
+/* a case's result: returns, checkpoint tabs, DataStore rows, sessions, warnings */
+.bugnote { border-left: 3px solid var(--bug); background: var(--bg); padding: 6px 10px; border-radius: 0 6px 6px 0; font-size: 14px; }
+.bugnote strong { color: var(--bug); }
+.subhead { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.ret { display: grid; grid-template-columns: 2.4em minmax(0, 1fr); gap: 6px; align-items: start; }
+.ret .idx { font: 600 12px var(--font-mono); color: var(--muted); padding-top: 7px; text-align: right; }
+.ret pre, .thrown pre { margin: 0; padding: 6px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px; white-space: pre-wrap; word-break: break-word; max-height: 10em; overflow-y: auto; font-size: 13px; }
+.ret pre.errtext { color: var(--err); }
+.thrown pre { color: var(--throws); }
+.tabs { display: flex; gap: 2px; flex-wrap: wrap; border-bottom: 1px solid var(--line); }
+.tab { border: none; background: transparent; color: var(--muted); padding: 5px 12px; font: 600 13px var(--font-body); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+.state { display: flex; flex-direction: column; gap: 10px; }
+table.kv { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.kv td { border-top: 1px solid var(--line); padding: 5px 6px; vertical-align: top; }
+table.kv td:first-child { font-family: var(--font-mono); white-space: nowrap; color: var(--muted); width: 1%; }
+table.kv pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 12.5px; }
+.sess { border: 1px solid var(--line); border-radius: 8px; background: var(--bg); padding: 8px 10px; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 12px; font-size: 13px; }
+.sess .head { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; font-family: var(--font-mono); font-weight: 600; }
+.flag { font: 600 11px var(--font-body); border-radius: 4px; padding: 0 6px; border: 1px solid var(--line); color: var(--muted); }
+.flag.on { color: var(--ok); border-color: var(--ok); }
+.sess .lbl { color: var(--muted); font-size: 12px; padding-top: 1px; }
+.sess pre { margin: 0; white-space: pre-wrap; word-break: break-word; font-size: 12.5px; }
+ol.oplog { margin: 0; padding-left: 1.5em; font-family: var(--font-mono); font-size: 12.5px; }
+.warns pre { margin: 0; color: var(--warn); white-space: pre-wrap; word-break: break-word; font-size: 12px; max-height: 8em; overflow-y: auto; }

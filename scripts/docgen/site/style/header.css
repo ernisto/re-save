@@ -1,0 +1,25 @@
+/* the top bar: brand, view tabs, search, theme, GitHub link */
+header.top {
+	position: sticky; top: 0; z-index: 10; background: var(--bg);
+	display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; border-bottom: 1px solid var(--line);
+	padding: 12px max(clamp(16px, 4vw, 56px), calc((100% - 1400px) / 2 + clamp(16px, 4vw, 56px)));
+}
+.top .brand { display: flex; align-items: center; gap: 8px; font-weight: 800; font-size: 20px; color: var(--ink); text-decoration: none; }
+.top .brand svg { width: 24px; height: 24px; fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; }
+.top .brand svg .solid { fill: var(--accent); }
+.top .version { font: 600 13px var(--font-mono); color: var(--muted); }
+.top .spacer { flex: 1; }
+.top input[type="search"] { font: 15px var(--font-body); color: var(--ink); background: var(--raised); border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; width: min(260px, 40vw); }
+.top button, .top a.repo { display: flex; align-items: center; gap: 6px; background: none; border: none; color: var(--ink); font: 500 15px var(--font-body); cursor: pointer; text-decoration: none; padding: 6px; border-radius: 8px; }
+.top button:hover, .top a.repo:hover { background: var(--raised); }
+.top a.repo svg { width: 20px; height: 20px; flex: none; }
+.top a.repo .repo-name { font-weight: 600; }
+.top a.repo .repo-text { display: flex; flex-direction: column; line-height: 1.2; }
+.top a.repo .stars { font: 600 12px var(--font-body); color: var(--warn); }
+.top a.repo .stars:empty { display: none; }
+@media (max-width: 760px) { .top a.repo .repo-text { display: none; } }
+
+.top nav.tabs-top { display: flex; gap: 4px; margin-left: 12px; }
+.top nav.tabs-top a { color: var(--muted); text-decoration: none; font-weight: 600; font-size: 15px; padding: 6px 10px; border-radius: 8px; }
+.top nav.tabs-top a:hover { background: var(--raised); }
+.top nav.tabs-top a[aria-current="page"] { color: var(--ink); }
