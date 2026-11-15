@@ -68,7 +68,8 @@ local function reconcilecloud<T>(
 	return readerr, writeerr, upstream
 end
 
-local function handletxlock<T>(s: session<T>, curtx: record.txlock<T>, inheritjob): (string?, record<T>?)
+-- resolves a stale tx lock; never reruns the caller's job, it was already applied to both branches
+local function handletxlock<T>(s: session<T>, curtx: record.txlock<T>): (string?, record<T>?)
 	local txerr, txdata = tx.awaitfetch(curtx.id)
 	if txerr then return txerr, nil end
 
@@ -77,7 +78,7 @@ local function handletxlock<T>(s: session<T>, curtx: record.txlock<T>, inheritjo
 	local commited = txdata ~= nil and txdata.state == 'commited'
 	local txupdate = record.txsolver(s.store.schema, curtx.id, commited)
 
-	local readerr, writeerr, upstream = reconcilecloud(s, inheritjob, txupdate)
+	local readerr, writeerr, upstream = reconcilecloud(s, nil, txupdate)
 	if readerr or writeerr then return readerr or writeerr, upstream end
 
 	local newtxerr = tx.awaitadopt(curtx.id, { `{s.store.ds.Name}:{s.key}` })
@@ -100,7 +101,13 @@ local function reconcilecloudandtx<T>(s: session<T>, job: nil | (record<T>) -> (
 	if upstream == nil then return readerr, nil end
 
 	local curtx = upstream.pendingtx
-	if curtx then task.spawn(handletxlock, s, curtx, job) end
+	if curtx then
+		-- in background: a stuck tx must not fail or delay the caller
+		task.spawn(function()
+			local txerr = handletxlock(s, curtx)
+			if txerr then warn(`[handletxlock] fail to resolve tx '{curtx.id}' for '{s.key}'\n{txerr}`) end
+		end)
+	end
 
 	return writeerr, upstream
 end

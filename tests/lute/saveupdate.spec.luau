@@ -53,4 +53,30 @@ suite('saveupdate', function(s)
 		t.eq(shim.stores[name].data.p1.pendingtx.id, 'tx-live')
 		t.eq(shim.stores[name].data.p1.pendingtx.newdata, { coins = 10 })
 	end)
+
+	s:case('applies_once_when_pendingtx_resolves', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+		maketest('tx-c', { state = 'commited' })
+		shim.stores[name].data.p1 = record(
+			{ coins = 5 },
+			0,
+			{ id = 'tx-c', newdata = { coins = 9 }, version = 0, cooltimestamp = 0 }
+		)
+		shim.stores[name].data.p2 = record(
+			{ coins = 5 },
+			0,
+			{ id = 'tx-gone', newdata = { coins = 9 }, version = 0, cooltimestamp = 0 }
+		)
+
+		local function buy(d)
+			d.coins += 1
+		end
+		t.eq(resave.saveupdate(st, 'p1', buy), nil)
+		t.eq(resave.saveupdate(st, 'p2', buy), nil)
+
+		-- resolving the lock must not replay the update
+		t.eq(shim.stores[name].data.p1, record({ coins = 10 }, 0))
+		t.eq(shim.stores[name].data.p2, record({ coins = 6 }, 0))
+	end)
 end)

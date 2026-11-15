@@ -210,4 +210,22 @@ suite('track', function(s)
 		t.eq(session.data, { coins = 5 })
 		t.eq(shim.stores[name].data.p1.pendingtx, nil)
 	end)
+
+	s:case('track_tracks_when_pendingtx_fails_to_resolve', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+		shim.stores[name].data.p1 = record(
+			{ coins = 5 },
+			0,
+			{ id = 'tx-x', newdata = { coins = 9 }, version = 0, cooltimestamp = 0 }
+		)
+		shim.stores.tx._failget = true
+
+		local err, session = resave.track(st, 'p1')
+
+		t.eq(err, nil)
+		t.eq(st.tracking.p1, session)
+		t.eq(shim.stores[name].data.p1.pendingtx.id, 'tx-x')
+		t.strContains(shim.warnings[#shim.warnings], "fail to resolve tx 'tx-x'")
+	end)
 end)

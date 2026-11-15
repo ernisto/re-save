@@ -106,4 +106,25 @@ suite('savebatch', function(s)
 		t.eq(shim.stores[name].data.a.data, { coins = 5 })
 		t.eq(shim.stores[name].data.a.pendingtx.id, 'tx-live')
 	end)
+
+	s:case('leaves_no_lock_when_record_has_resolvable_old_tx', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+		shim.stores[name].data.a = record(
+			{ coins = 5 },
+			0,
+			{ id = 'tx-gone', newdata = { coins = 9 }, version = 0, cooltimestamp = 0 }
+		)
+
+		local err = resave.savebatch(function(queue)
+			queue(st, 'a', function(d)
+				d.coins += 3
+			end)
+		end)
+		assert(err)
+
+		-- old lock resolved as aborted; the failed batch must not lock again
+		t.strContains(err, 'pending tx')
+		t.eq(shim.stores[name].data.a, record({ coins = 5 }, 0))
+	end)
 end)
