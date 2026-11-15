@@ -25,13 +25,11 @@ local function isrecord<T>(value: any): record<T>?
 end
 local function workingrecord<T>(workingschema: schema.schema<T>, value: unknown): record<T>
 	local record: record<T> = isrecord(value) or { data = utils.deepclone(workingschema.default), version = 0 }
-	record.data = schema.workingdata(workingschema, record.version, record.data)
-	record.version = #workingschema.migrations
+	record.data, record.version = schema.workingdata(workingschema, record.version, record.data)
 
 	local tx = record.pendingtx
 	if tx then
-		tx.newdata = schema.workingdata(workingschema, tx.version, tx.newdata)
-		tx.version = record.version
+		tx.newdata, tx.version = schema.workingdata(workingschema, tx.version, tx.newdata)
 	end
 
 	return record
@@ -45,7 +43,9 @@ local function txsolver<T>(workingschema: schema.schema<T>, txid: string, commit
 		if tx.id ~= txid then return end
 
 		record.pendingtx = nil
-		if commited then record.data = schema.workingdata(workingschema, tx.version, tx.newdata) end
+		if commited then
+			record.data, record.version = schema.workingdata(workingschema, tx.version, tx.newdata)
+		end
 	end
 end
 
