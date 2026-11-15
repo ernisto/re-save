@@ -1,6 +1,7 @@
 local operation = require './operation'
 local schema = require './schema'
 local storage = require './storage'
+local tx = require './tx'
 
 -- defs
 local stores = {}
@@ -30,7 +31,13 @@ local function store<T>(name: string, opts: { schema: schema.schema<T> }): store
 	return store
 end
 local function delete<T>(store: store<T>, key: string): string?
-	return storage.awaitremove(store.ds, key)
+	local err, old = storage.awaitremove(store.ds, key)
+	if err then return err end
+
+	local pendingtx = if type(old) == 'table' and type(old.pendingtx) == 'table' then old.pendingtx else nil
+	if pendingtx then task.spawn(tx.awaitadopt, pendingtx.id, { `{store.ds.Name}:{key}` }) end
+
+	return nil
 end
 
 local function identify<T>(store: store<T>, key: string): session<T>

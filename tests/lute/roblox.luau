@@ -33,7 +33,7 @@ local function deepcopy(value: any): any
 end
 
 local function newdatastore(id)
-	local ds: any = { id = id, data = {} }
+	local ds: any = { id = id, Name = id, data = {} }
 
 	function ds:GetAsync(key)
 		if ds._failget then error 'get failed' end

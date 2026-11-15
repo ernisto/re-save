@@ -27,4 +27,15 @@ suite('delete', function(s)
 
 		t.strContains(err, 'remove failed')
 	end)
+
+	s:case('adopts_tx_of_a_locked_record', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema {} })
+		shim.stores.tx.data['tx-x'] = { state = 'commited', committimeout = 0, adopts = { [`{name}:p1`] = false } }
+		shim.stores[name].data.p1 = record({}, 0, { id = 'tx-x', newdata = {}, version = 0, cooltimestamp = 0 })
+
+		t.eq(resave.delete(st, 'p1'), nil)
+		-- the record was the tx's last adopter, so the tx is cleaned up
+		t.eq(shim.stores.tx.data['tx-x'], nil)
+	end)
 end)
