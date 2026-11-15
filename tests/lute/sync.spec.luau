@@ -163,7 +163,45 @@ suite('sync', function(s)
 		t.eq(resave.free(session), nil)
 	end)
 
-	-- runs last: closing cancels the background sync loop
+	s:case('close_waits_for_running_sync', function(t)
+		local name = unique()
+		local key = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+
+		local err, session = resave.track(st, key)
+		assert(session, err)
+
+		-- the next save yields inside the storage lock
+		local ds = shim.stores[name]
+		local realupdate = ds.UpdateAsync
+		local entered = false
+		ds.UpdateAsync = function(self, k, fn)
+			entered = true
+			task.wait(0.2)
+			return realupdate(self, k, fn)
+		end
+		resave.queueupdate(session, add(1))
+
+		local deadline = os.clock() + 3
+		while not entered and os.clock() < deadline do
+			task.wait()
+		end
+		local closed = false
+		task.spawn(function()
+			shim.close()
+			closed = true
+		end)
+		deadline = os.clock() + 3
+		while not closed and os.clock() < deadline do
+			task.wait()
+		end
+		ds.UpdateAsync = realupdate
+
+		t.that(entered, 'expected livesync to start a save')
+		t.that(closed, 'close hung on the lock of the stopped sync')
+		t.eq(ds.data[key].data, { coins = 1 })
+	end)
+
 	s:case('close_warns_when_save_fails', function(t)
 		local name = unique()
 		local key = unique()

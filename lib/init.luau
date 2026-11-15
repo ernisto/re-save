@@ -228,8 +228,9 @@ local function awaitsavebatch(builder: (update: <T>(store<T>, key: string, updat
 end
 
 -- routine
-local livesync = task.spawn(function()
-	while true do
+local closing = false
+task.spawn(function()
+	while not closing do
 		local s = syncloop.next()
 		if not s then
 			task.wait()
@@ -244,7 +245,7 @@ local livesync = task.spawn(function()
 	end
 end)
 game:BindToClose(function()
-	task.cancel(livesync)
+	closing = true
 
 	for _, st in session.stores do
 		for key, s in st.tracking do
