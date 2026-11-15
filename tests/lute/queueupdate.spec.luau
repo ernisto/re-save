@@ -123,4 +123,20 @@ suite('queueupdate', function(s)
 			end)
 		end, '2nd execution produced a different result')
 	end)
+
+	s:case('freezes_session_data', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+
+		local err, session = resave.track(st, 'p1')
+		assert(session, err)
+		resave.queueupdate(session, function(d)
+			d.coins += 5
+		end)
+
+		-- only updates may change data, or the change is never saved
+		t.throws(function()
+			session.data.coins = 1
+		end)
+	end)
 end)

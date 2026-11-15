@@ -3,6 +3,7 @@ local storage = require '@self/storage'
 local sync = require '@self/sync'
 local syncloop = require '@self/syncloop'
 local tx = require '@self/tx'
+local utils = require '@self/utils'
 
 local operation = require '@self/operation'
 type op<T = any> = operation.operation<T>
@@ -82,7 +83,7 @@ local function update<T>(s: session<T>, update: (T) -> ())
 	assert(result, err)
 
 	table.insert(s.pendingupdates, update :: any)
-	s.data = result
+	s.data = utils.deepfreeze(result)
 end
 local function awaitsaveupdate<T>(st: store<T>, key: string, update: (T) -> ()): string?
 	local s = session.identify(st, key)
