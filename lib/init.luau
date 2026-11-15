@@ -176,10 +176,15 @@ local function awaitsavebatch(builder: (update: <T>(store<T>, key: string, updat
 	local sessionids = {}
 	local ss = {}
 	local updates = {}
+	local queued = {}
 
 	local function queueupdate<T>(st: store<T>, key: string, update: (T) -> ())
+		-- by store and key: untracked keys get a new session per identify
+		queued[st] = queued[st] or {}
+		assert(not queued[st][key], `already defined a tx for {key}`)
+		queued[st][key] = true
+
 		local s = session.identify(st, key)
-		assert(updates[s] == nil, `already defined a tx for {key}`)
 
 		updates[s] = update
 		table.insert(sessionids, `{s.store.ds.Name}:{s.key}`)
