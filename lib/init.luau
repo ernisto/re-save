@@ -201,13 +201,10 @@ local function awaitsavebatch(builder: (update: <T>(store<T>, key: string, updat
 	local lockerr, lockeds = batchlocktx(ss, txid, updates)
 	local commited = lockerr == nil
 
-	local commiterr, aborterr, adopterr
-	if commited then
-		commiterr = tx.awaitcommit(txid)
-		commited = commiterr == nil
-	else
-		aborterr = tx.awaitabort(txid)
-	end
+	local commiterr = if commited then tx.awaitcommit(txid) else nil
+	commited = commited and commiterr == nil
+
+	local aborterr = if not commited then tx.awaitabort(txid) else nil
 
 	local adopters = batchadopt(lockeds, txid, commited)
 	local adopterids = {}
@@ -216,7 +213,7 @@ local function awaitsavebatch(builder: (update: <T>(store<T>, key: string, updat
 		adopterids[i] = `{adopter.store.ds.Name}:{adopter.key}`
 	end
 
-	if commited then adopterr = tx.awaitadopt(txid, adopterids) end
+	local adopterr = if commited then tx.awaitadopt(txid, adopterids) else nil
 	return lockerr or commiterr or aborterr or adopterr
 end
 
