@@ -41,7 +41,7 @@ suite('track', function(s)
 		t.eq(shim.stores[name].data.p1.version, 1)
 	end)
 
-	s:case('track_returns_original_data_when_migration_fails', function(t)
+	s:case('track_fails_and_keeps_record_when_migration_fails', function(t)
 		local name = unique()
 		local schema = resave.migrate(resave.schema { nested = { x = 0 } }, function(d)
 			d.nested.x += 1
@@ -51,26 +51,13 @@ suite('track', function(s)
 		shim.stores[name].data.p1 = record({ missing = true }, 0)
 
 		local err, session = resave.track(st, 'p1')
-		assert(session)
+		assert(err)
 
-		t.eq(err, nil)
-		t.eq(session.data, { missing = true } :: any)
-	end)
-
-	s:case('track_keeps_version_when_migration_fails', function(t)
-		local name = unique()
-		local schema = resave.migrate(resave.schema { nested = { x = 0 } }, function(d)
-			d.nested.x += 1
-			return d
-		end)
-		local st = resave.store(name, { schema = schema })
-		shim.stores[name].data.p1 = record({ missing = true }, 0)
-
-		local err, session = resave.track(st, 'p1')
-		assert(session, err)
-
-		-- version stays behind, so the migration runs again on the next load
-		t.eq(shim.stores[name].data.p1.version, 0)
+		-- half migrated data never loads; the save stays as it was, so the migration runs again
+		t.strContains(err, 'fail to migrate to v1')
+		t.eq(session, nil)
+		t.eq(st.tracking.p1, nil)
+		t.eq(shim.stores[name].data.p1, record({ missing = true }, 0))
 	end)
 
 	s:case('track_fails_outdated_when_version_ahead', function(t)

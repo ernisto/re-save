@@ -22,8 +22,8 @@ local function migrate<B, T>(base: schema<B>, migrate: (B) -> T): schema<T>
 
 	return table.freeze { default = base.default :: any, migrations = table.freeze(newmigrations :: any) }
 end
--- returns the data and the version it reached; stops at the first failing migration
-local function workingdata<T>(workingschema: schema<T>, inputversion: number, input: unknown): (T, number)
+-- throws if a migration fails: half migrated data must never load or be saved
+local function workingdata<T>(workingschema: schema<T>, inputversion: number, input: unknown): T
 	local workingversion = #workingschema.migrations
 	assert(inputversion <= workingversion, 'outdated base')
 
@@ -33,14 +33,13 @@ local function workingdata<T>(workingschema: schema<T>, inputversion: number, in
 
 		if err then
 			local path, line = debug.info(migration, 'sl')
-			warn(`[workingdata] fail to migrate to v{midversion} ({path}:{line})\n{err}`)
-			return input :: any, midversion - 1
+			error(`[workingdata] fail to migrate to v{midversion} ({path}:{line})\n{err}`, 0)
 		else
 			input = newdata
 		end
 	end
 
-	return input :: any, workingversion
+	return input :: any
 end
 
 -- export
