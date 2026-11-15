@@ -110,6 +110,29 @@ local function locktx<T>(s: session<T>, txid: string, update: op<T>): (string?, 
 		}
 	end)
 end
+-- tests every update on the current cloud data before any record is locked
+local function batchpretest(updates: { [session]: op }): string?
+	local remaining = 0
+	local firsterr: string?
+
+	for s, update in updates do
+		remaining += 1
+		task.spawn(function()
+			local err, upstream = sync.fetchcloud(s)
+			if upstream then
+				local base = operation.rebase(s.pendingupdates, upstream.data)
+				err = operation.cloneapply(base, update)
+			end
+			firsterr = firsterr or err
+			remaining -= 1
+		end)
+	end
+
+	while remaining > 0 do
+		task.wait()
+	end
+	return firsterr
+end
 local function batchlocktx(sessions: { session }, txid: string, updates: { [session]: op }): (string?, { session })
 	local remainingsaves = #sessions
 	local lockeds: { session } = {}
@@ -163,6 +186,9 @@ local function awaitsavebatch(builder: (update: <T>(store<T>, key: string, updat
 		table.insert(ss, s)
 	end
 	builder(queueupdate)
+
+	local testerr = batchpretest(updates)
+	if testerr then return testerr end
 
 	local err, txid = tx.awaitcreate(sessionids)
 	if err or not txid then return err end

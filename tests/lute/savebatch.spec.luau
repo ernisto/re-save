@@ -127,4 +127,26 @@ suite('savebatch', function(s)
 		t.strContains(err, 'pending tx')
 		t.eq(shim.stores[name].data.a, record({ coins = 5 }, 0))
 	end)
+
+	s:case('aborts_without_locks_when_an_update_fails_its_check', function(t)
+		local a, b = unique(), unique()
+		local sa = resave.store(a, { schema = resave.schema { coins = 0 } })
+		local sb = resave.store(b, { schema = resave.schema { coins = 0 } })
+		local calls = 0
+
+		local err = resave.savebatch(function(queue)
+			queue(sa, 'a', function(d)
+				d.coins += 3
+			end)
+			queue(sb, 'b', function(d)
+				calls += 1
+				d.coins = calls
+			end)
+		end)
+		assert(err)
+
+		t.strContains(err, 'different result')
+		t.eq(shim.stores[a].data.a, nil)
+		t.eq(shim.stores[b].data.b, nil)
+	end)
 end)

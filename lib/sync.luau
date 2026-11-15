@@ -114,6 +114,7 @@ end
 
 -- module
 return table.freeze {
+	fetchcloud = fetchcloud,
 	reconcilecloud = reconcilecloud,
 	reconcilecloudandtx = reconcilecloudandtx,
 }
