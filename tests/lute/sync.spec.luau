@@ -138,6 +138,31 @@ suite('sync', function(s)
 		t.eq(resave.free(session), nil)
 	end)
 
+	s:case('livesync_waits_for_budget', function(t)
+		local name = unique()
+		local key = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+
+		local err, session = resave.track(st, key)
+		assert(session, err)
+
+		shim.setbudget(0)
+		resave.queueupdate(session, add(1))
+		local deadline = os.clock() + 0.3
+		while os.clock() < deadline do
+			task.wait()
+		end
+		t.eq(shim.stores[name].data[key].data, { coins = 0 })
+
+		shim.setbudget(100)
+		deadline = os.clock() + 3
+		while shim.stores[name].data[key].data.coins == 0 and os.clock() < deadline do
+			task.wait()
+		end
+		t.eq(shim.stores[name].data[key].data, { coins = 1 })
+		t.eq(resave.free(session), nil)
+	end)
+
 	-- runs last: closing cancels the background sync loop
 	s:case('close_warns_when_save_fails', function(t)
 		local name = unique()

@@ -30,11 +30,13 @@ local function unlock(ds: DataStore, key: string)
 	if next(working[ds]) == nil then working[ds] = nil end
 end
 
-local function awaitbudget()
-	while not DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.UpdateAsync) do
+local function awaitbudget(): number
+	local budget = DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.UpdateAsync)
+	while budget <= 0 do
 		task.wait()
+		budget = DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.UpdateAsync)
 	end
-	return DataStoreService:GetRequestBudgetForRequestType(Enum.DataStoreRequestType.UpdateAsync)
+	return budget
 end
 
 local function awaitlocked<T>(

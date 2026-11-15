@@ -13,6 +13,7 @@ local root = `{dir}/../../lib`
 
 -- vars
 local guidcount = 0
+local budget = 100
 local handles = {}
 local closers = {}
 local warnings = {}
@@ -89,7 +90,7 @@ local function getservice(name)
 				return ds
 			end,
 			GetRequestBudgetForRequestType = function()
-				return true
+				return budget
 			end,
 		}
 	end
@@ -212,6 +213,9 @@ return table.freeze {
 			fn()
 		end
 	end,
+	setbudget = function(n: number)
+		budget = n
+	end,
 	guidpeek = function()
 		return `guid-{guidcount + 1}`
 	end,
@@ -223,5 +227,6 @@ return table.freeze {
 			ds._failremove = nil
 		end
 		guidcount = 0
+		budget = 100
 	end,
 }
