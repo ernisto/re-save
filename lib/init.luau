@@ -79,8 +79,17 @@ end
 local function awaitsaveupdate<T>(st: store<T>, key: string, update: (T) -> ()): string?
 	local s = session.identify(st, key)
 	local err = sync.reconcilecloudandtx(s, function(record)
-		update(record.data)
-		if record.pendingtx then update(record.pendingtx.newdata) end
+		-- same checks as queueupdate, on both branches, before anything is written
+		local dataerr, data = operation.cloneapply(record.data, update :: any)
+		if dataerr then error(dataerr, 0) end
+
+		local tx = record.pendingtx
+		if tx then
+			local txerr, txdata = operation.cloneapply(tx.newdata, update :: any)
+			if txerr then error(`[saveupdate] fails on pending tx branch:\n{txerr}`, 0) end
+			tx.newdata = txdata
+		end
+		record.data = data
 	end)
 	return err
 end

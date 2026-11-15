@@ -79,4 +79,45 @@ suite('saveupdate', function(s)
 		t.eq(shim.stores[name].data.p1, record({ coins = 10 }, 0))
 		t.eq(shim.stores[name].data.p2, record({ coins = 6 }, 0))
 	end)
+
+	s:case('rejects_yielding_or_impure_update', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0, t = 0 } })
+		local calls = 0
+
+		local yerr = resave.saveupdate(st, 'p1', function(d)
+			coroutine.yield()
+			d.coins += 1
+		end)
+		local ierr = resave.saveupdate(st, 'p1', function(d)
+			calls += 1
+			d.t = calls
+		end)
+		assert(yerr and ierr)
+
+		t.strContains(yerr, 'attempt to yield')
+		t.strContains(ierr, 'different result')
+		t.eq(shim.stores[name].data.p1.data, { coins = 0, t = 0 })
+	end)
+
+	s:case('saves_nothing_when_update_fails_on_pendingtx_branch', function(t)
+		local name = unique()
+		local st = resave.store(name, { schema = resave.schema { coins = 0 } })
+		maketest('tx-live', {})
+		shim.stores[name].data.p1 = record(
+			{ coins = 5 },
+			0,
+			{ id = 'tx-live', newdata = { coins = 0 }, version = 0, cooltimestamp = 0 }
+		)
+
+		local err = resave.saveupdate(st, 'p1', function(d)
+			assert(d.coins >= 5, 'not enough coins')
+			d.coins -= 5
+		end)
+		assert(err)
+
+		t.strContains(err, 'not enough coins')
+		t.eq(shim.stores[name].data.p1.data, { coins = 5 })
+		t.eq(shim.stores[name].data.p1.pendingtx.newdata, { coins = 0 })
+	end)
 end)
