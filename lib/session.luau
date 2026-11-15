@@ -44,7 +44,7 @@ local function identify<T>(store: store<T>, key: string): session<T>
 	local default = store.schema.default
 	return store.tracking[key] or { store = store, key = key, pendingupdates = {}, base = default, data = default }
 end
-local function maybetracked<T>(store: store<T>, key: string): session<T>
+local function maybetracked<T>(store: store<T>, key: string): session<T>?
 	return store.tracking[key]
 end
 local function isloaded<T>(session: session<T>): boolean
