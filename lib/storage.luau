@@ -52,7 +52,7 @@ local function awaitlocked<T>(
 	if success then
 		return nil, result
 	else
-		return result, nil
+		return tostring(result), nil -- the traceback
 	end
 end
 

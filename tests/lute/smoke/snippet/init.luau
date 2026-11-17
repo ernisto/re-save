@@ -10,9 +10,10 @@ local paths = require '@self/paths'
 local printer = require '@self/printer'
 local signature = require '@self/signature'
 local snapshot = require '@self/snapshot'
+local types = require '@self/types'
 
 -- the library, loaded on the first run: a module can't yield while it loads
-local realresave
+local realresave: any
 local runcount = 0
 
 -- after mock.close() the loaded library's save loop is gone for good: load a fresh one
@@ -30,7 +31,7 @@ local function preparelibrary()
 	mock.reset()
 end
 
-local function newctx(fnname: string)
+local function newctx(fnname: string, code: string): types.ctx
 	runcount += 1
 
 	return {
@@ -46,10 +47,12 @@ local function newctx(fnname: string)
 		restores = {},
 		warnseen = #mock.warnings,
 		clock = 0,
+		input = nil,
+		fnlabel = env.makefnlabel(code),
 	}
 end
 
-local function collectreturns(results, ctx)
+local function collectreturns(results: { n: number, [number]: any }, ctx: types.ctx)
 	local returned = {}
 
 	for i = 1, results.n - 1 do
@@ -65,7 +68,7 @@ local function collectreturns(results, ctx)
 end
 
 -- undo failwrite patches and untrack the run's sessions, so the next run starts clean
-local function cleanup(ctx)
+local function cleanup(ctx: types.ctx)
 	for i = #ctx.restores, 1, -1 do
 		ctx.restores[i]()
 	end
@@ -76,11 +79,11 @@ local function cleanup(ctx)
 end
 
 -- `code` = the shown snippet (for function labels), `ran` = what actually runs (same lines)
-local function run(fnname: string, code: string, ran: string)
+local function run(fnname: string, code: string, ran: string): types.result
 	preparelibrary()
-	local ctx = newctx(fnname)
+	local ctx = newctx(fnname, code)
 
-	local globals = env.makeenv(ctx, code, realresave)
+	local globals = env.makeenv(ctx, realresave)
 	local fn = luau.load(luau.compile(instrument.instrument(ran)), '=snippet', globals)
 
 	local results = table.pack(pcall(fn))
@@ -99,7 +102,7 @@ local function run(fnname: string, code: string, ran: string)
 	}
 end
 
-local function outcome(result): 'throws' | 'err' | 'warn' | 'ok'
+local function outcome(result: types.result): 'throws' | 'err' | 'warn' | 'ok'
 	if result.thrown then return 'throws' end
 
 	for _, r in result.returned do

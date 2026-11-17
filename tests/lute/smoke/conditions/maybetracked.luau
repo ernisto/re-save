@@ -1,8 +1,9 @@
 -- Condition tree of resave.maybetracked (node fields: node.luau).
+local nodes = require './node'
 local shared = require './shared'
 local STORE = shared.STORE
 
-return {
+local spec: nodes.spec = {
 	name = 'maybetracked',
 	preamble = STORE,
 	call = "local s = resave.maybetracked(players, 'p1')",
@@ -16,3 +17,5 @@ return {
 		},
 	},
 }
+
+return spec

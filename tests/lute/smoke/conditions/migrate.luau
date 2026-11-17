@@ -1,9 +1,10 @@
 -- Condition tree of resave.migrate (node fields: node.luau).
 -- migrate cases that build their own schemas or stores: not combined with `chained`
+local nodes = require './node'
 local MIGRATE_SOLO =
 	{ 'player_breaks', 'edited', 'inserted', 'raises_fixed', 'impure_fixed', 'player_safe', 'fixed_on_top', 'appended' }
 
-return {
+local spec: nodes.spec = {
 	name = 'migrate',
 	preamble = 'local v0 = resave.schema {{default}}',
 	call = '{{call}}',
@@ -118,3 +119,5 @@ return {
 		},
 	},
 }
+
+return spec

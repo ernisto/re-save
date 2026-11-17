@@ -2,9 +2,10 @@
 -- recorded for the snapshots, and the documented function's first call takes the
 -- "DataStore before" panel.
 local snapshot = require '../snapshot'
+local types = require '../types'
 
-local function wrapresave(ctx, realresave)
-	local resave = table.clone(realresave)
+local function wrapresave(ctx: types.ctx, realresave): any
+	local resave: any = table.clone(realresave)
 
 	resave.store = function(name, opts)
 		local st = realresave.store(`{name}#{ctx.id}`, opts)

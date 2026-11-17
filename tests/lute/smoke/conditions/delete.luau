@@ -1,9 +1,10 @@
 -- Condition tree of resave.delete (node fields: node.luau).
+local nodes = require './node'
 local shared = require './shared'
 local STORE = shared.STORE
 local andthen = shared.andthen
 
-return {
+local spec: nodes.spec = {
 	name = 'delete',
 	preamble = STORE,
 	call = "local err = resave.delete(players, 'p1')",
@@ -43,3 +44,5 @@ return {
 		),
 	},
 }
+
+return spec

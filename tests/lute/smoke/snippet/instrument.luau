@@ -5,7 +5,8 @@ local syntax = require '@std/syntax'
 -- numbers stay the same. Nothing can follow a `return`, so capturing stops there.
 local function instrument(code: string): string
 	local lines = code:split '\n'
-	local ast = syntax.parse(code)
+	-- syntax trees are `any`: luau-lsp cannot narrow the lute AST unions (or read ParseResult.root)
+	local ast: any = syntax.parse(code)
 	local declared = {}
 
 	local statements = ast.root.statements

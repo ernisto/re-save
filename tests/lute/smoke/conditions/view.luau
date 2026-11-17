@@ -14,7 +14,7 @@ local GET_FAILS: node = {
 	arm = "fail(players, 'get')",
 }
 
-return {
+local spec: nodes.spec = {
 	name = 'view',
 	preamble = STORE,
 	call = "local err, data = resave.view(players, 'p1')",
@@ -60,3 +60,5 @@ return {
 		},
 	},
 }
+
+return spec

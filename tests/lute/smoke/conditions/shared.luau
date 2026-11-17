@@ -67,6 +67,13 @@ local WRITE_FAILS: node = {
 	arm = 'failwrite(players)',
 }
 
+-- one list of nodes after another
+local function join(first: { node }, rest: { node }): { node }
+	local out = table.clone(first)
+	table.move(rest, 1, #rest, #out + 1, out)
+	return out
+end
+
 -- a follow-up event after the call: pick at most one per function.
 local function andthen(id: string, label: string, event: string, post: string, extra: { [string]: any }?): node
 	local node: any = {
@@ -75,8 +82,10 @@ local function andthen(id: string, label: string, event: string, post: string, e
 		label = `then {label}`,
 		post = `checkpoint 'before {event}'\n{post}`,
 	}
-	for key, value in extra or {} do
-		node[key] = value
+	if extra then
+		for key, value in extra do
+			node[key] = value
+		end
 	end
 	return node
 end
@@ -89,5 +98,6 @@ return {
 	WRITE_FAILS = WRITE_FAILS,
 	pendingtx = pendingtx,
 	txnodes = txnodes,
+	join = join,
 	andthen = andthen,
 }

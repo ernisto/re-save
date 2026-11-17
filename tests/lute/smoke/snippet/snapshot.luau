@@ -2,11 +2,12 @@
 local mock = require '../../mock'
 local paths = require './paths'
 local printer = require './printer'
+local types = require './types'
 
 local cleanpaths = paths.cleanpaths
 local printvalue = printer.printvalue
 
-local function snapshotsession(s, ctx)
+local function snapshotsession(s: any, ctx: types.ctx): types.sessionrow
 	local oplog = {}
 	for i, op in s.pendingupdates do
 		oplog[i] = ctx.fnlabel(op)
@@ -25,8 +26,8 @@ local function snapshotsession(s, ctx)
 end
 
 -- what the DataStore and the tx store hold right now
-local function storesnapshot(ctx)
-	local cloud = {}
+local function storesnapshot(ctx: types.ctx): ({ types.row }, { types.row })
+	local cloud: { types.row } = {}
 	for _, st in ctx.stores do
 		local keys = {}
 		for key in st.ds.data do
@@ -39,7 +40,7 @@ local function storesnapshot(ctx)
 		end
 	end
 
-	local tx = {}
+	local tx: { types.row } = {}
 	local txkeys = {}
 	for key in mock.stores.tx.data do
 		table.insert(txkeys, key)
@@ -52,12 +53,12 @@ local function storesnapshot(ctx)
 	return cloud, tx
 end
 
-local function snapshot(label: string, ctx)
+local function snapshot(label: string, ctx: types.ctx)
 	local cloud, tx = storesnapshot(ctx)
 
 	local seen = {}
-	local sessions = {}
-	local function add(s)
+	local sessions: { types.sessionrow } = {}
+	local function add(s: any)
 		if seen[s] then return end
 		seen[s] = true
 		table.insert(sessions, snapshotsession(s, ctx))

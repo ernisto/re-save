@@ -10,7 +10,7 @@ local suite = helpers.suite
 local unique = helpers.unique
 
 local function add(amount: number)
-	return function(d)
+	return function(d: any)
 		d.coins += amount
 	end
 end

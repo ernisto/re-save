@@ -1,4 +1,5 @@
 local json = require './json'
+local types = require './types'
 
 local tojson = json.tojson
 
@@ -10,7 +11,7 @@ local function brief(text: string): string
 	return ((text:match '^[^\n]*' :: string):gsub(':%d+', ''):gsub('line %d+', 'line'))
 end
 
-local function resultsignature(run): string
+local function resultsignature(run: types.result): string
 	local last = run.checkpoints[#run.checkpoints]
 	local warnings = {}
 	for _, cp in run.checkpoints do

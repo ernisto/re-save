@@ -15,7 +15,7 @@ local function haswarning(needle: string): boolean
 end
 
 local function add(amount: number)
-	return function(d)
+	return function(d: any)
 		d.coins += amount
 	end
 end

@@ -44,7 +44,7 @@ local function free<T>(s: session<T>): string?
 
 	local droperr
 	if #s.pendingupdates > 0 then
-		local err
+		local err, _
 		err, _, droperr = sync.reconcilecloudandtx(s)
 		if err then return err end
 	end
@@ -90,12 +90,12 @@ local function awaitsaveupdate<T>(st: store<T>, key: string, update: (T) -> ()):
 	local err = sync.reconcilecloudandtx(s, function(record)
 		-- same checks as queueupdate, on both branches, before anything is written
 		local dataerr, data = operation.cloneapply(record.data, update :: any)
-		if dataerr then error(dataerr, 0) end
+		if not data then error(dataerr, 0) end
 
 		local tx = record.pendingtx
 		if tx then
 			local txerr, txdata = operation.cloneapply(tx.newdata, update :: any)
-			if txerr then error(`[saveupdate] fails on pending tx branch:\n{txerr}`, 0) end
+			if not txdata then error(`[saveupdate] fails on pending tx branch:\n{txerr}`, 0) end
 			tx.newdata = txdata
 		end
 		record.data = data
@@ -136,8 +136,9 @@ local function batchrun(sessions: { session }, job: (session) -> string?): (stri
 	local firsterr: string?
 	local oks: { session } = {}
 	for i, s in sessions do
-		if errs[i] then
-			firsterr = firsterr or errs[i]
+		local err = errs[i]
+		if type(err) == 'string' then
+			firsterr = firsterr or err
 		else
 			table.insert(oks, s)
 		end

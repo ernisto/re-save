@@ -4,27 +4,28 @@
 local query = require '@std/syntax/query'
 local syntax = require '@std/syntax'
 
-local function isglobal(expr, name: string): boolean
+-- syntax trees are `any`: luau-lsp cannot narrow the lute AST unions (or read ParseResult.root)
+local function isglobal(expr: any, name: string): boolean
 	return expr.tag == 'global' and expr.name.text == name
 end
 
 -- the name a target hangs off: `cloud(players).p1` -> cloud, `txcloud['tx-a']` -> txcloud
-local function root(expr)
+local function root(expr: any): any
 	while expr.tag == 'index' or expr.tag == 'indexname' or expr.tag == 'call' do
 		expr = if expr.tag == 'call' then expr.func else expr.expression
 	end
 	return expr
 end
 
-local function isseed(stat): boolean
+local function isseed(stat: any): boolean
 	if stat.tag ~= 'assign' then return false end
 
 	local target = root(stat.variables[1].node)
 	return isglobal(target, 'cloud') or isglobal(target, 'txcloud')
 end
 
-local function calls(stat, fnname: string): boolean
-	local found = query.findAllFromRoot(stat, function(n)
+local function calls(stat: any, fnname: string): boolean
+	local found = query.findAllFromRoot(stat, function(n: any)
 		local hit = n.kind == 'expr' and n.tag == 'indexname' and n.index.text == fnname
 		return if hit and isglobal(n.expression, 'resave') then n else nil
 	end)
@@ -32,8 +33,8 @@ local function calls(stat, fnname: string): boolean
 end
 
 -- the statement's lines joined into one, each cut where its comment starts
-local function oneline(stat, lines: { string }): string
-	local tokens = query.findAllFromRoot(stat, function(n)
+local function oneline(stat: any, lines: { string }): string
+	local tokens = query.findAllFromRoot(stat, function(n: any)
 		return if n.kind == 'token' then n else nil
 	end)
 
@@ -58,7 +59,8 @@ local function hideseeds(code: string, upto: number, fnname: string): (string, s
 	local seeds = {}
 	local called = false
 
-	for _, stat in syntax.parse(code).root.statements do
+	local ast: any = syntax.parse(code)
+	for _, stat in ast.root.statements do
 		local first, last = stat.location.beginLine, stat.location.endLine
 
 		if first <= upto and not called and isseed(stat) then

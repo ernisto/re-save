@@ -1,7 +1,8 @@
 -- queueupdate suggested fixes: each stands alone, so no follow-up or second update.
+local nodes = require '../node'
 local QUEUE_SOLO = { 'queued', 'freed', 'livesync', 'then_saveupdate', 'then_free', 'then_view', 'then_queue' }
 
-return {
+local list: { nodes.node } = {
 	{
 		id = 'freed_checked',
 		group = 'fn',
@@ -51,3 +52,5 @@ return {
 		conflicts = QUEUE_SOLO,
 	},
 }
+
+return list

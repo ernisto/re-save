@@ -78,7 +78,7 @@ end
 
 local function generate(update: boolean)
 	if not fs.exists(folder) then fs.mkdir(folder) end
-	local results = {}
+	local results: { [string]: { [string]: string } } = {}
 	local total = 0
 
 	for _, spec in conditions do
@@ -99,6 +99,8 @@ local function generate(update: boolean)
 end
 
 -- the library's background sync loop keeps lute running: stop it even when this fails
-local ok, err = pcall(generate, process.args[2] == 'update')
+local ok, err = pcall(function()
+	generate(process.args[2] == 'update')
+end)
 mock.close()
 if not ok then error(err, 0) end

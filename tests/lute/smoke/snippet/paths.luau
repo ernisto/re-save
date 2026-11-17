@@ -1,6 +1,7 @@
 -- Paths in errors and labels, relative to the repo.
 local here = (debug.info(1, 's') or ''):gsub('^@', ''):gsub('\\', '/')
 local repo = here:match '^(.*)/tests/lute/smoke/snippet/[^/]+$'
+	or error 'paths.luau must sit in tests/lute/smoke/snippet'
 
 local function cleanpaths(text: string): string
 	local slashed = text:gsub('\\', '/')

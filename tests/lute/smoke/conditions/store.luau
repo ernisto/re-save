@@ -1,8 +1,9 @@
 -- Condition tree of resave.store (node fields: node.luau).
+local nodes = require './node'
 local shared = require './shared'
 local STORE = shared.STORE
 
-return {
+local spec: nodes.spec = {
 	name = 'store',
 	preamble = '',
 	call = STORE,
@@ -22,3 +23,5 @@ return {
 		},
 	},
 }
+
+return spec

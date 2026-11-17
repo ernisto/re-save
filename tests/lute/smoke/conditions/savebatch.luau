@@ -1,14 +1,14 @@
 -- Condition tree of resave.savebatch (node fields: node.luau).
+local nodes = require './node'
 local shared = require './shared'
 local SHOP_STORE = shared.SHOP_STORE
-local pendingtx = shared.pendingtx
 local andthen = shared.andthen
 
 -- savebatch suggested-fix cases stand alone
 local BATCH_SOLO =
 	{ 'duplicate', 'empty', 'locked', 'create_fails', 'lock_fails', 'commit_fails', 'adopt_fails', 'then_track' }
 
-return {
+local spec: nodes.spec = {
 	name = 'savebatch',
 	preamble = SHOP_STORE .. "\ncloud(players).seller = { data = { coins = 0, items = { 'sword' } }, version = 0 }",
 	call = 'local err = resave.savebatch(function(queue)\n{{builder}}{{trade}}\nend)',
@@ -135,3 +135,5 @@ return {
 		),
 	},
 }
+
+return spec

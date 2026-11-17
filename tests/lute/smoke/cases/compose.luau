@@ -1,9 +1,14 @@
 -- Builds the snippet of one case from the checked nodes of its tree.
+local nodes = require '../conditions/node'
 local seeds = require './seeds'
 
 local hideseeds = seeds.hideseeds
 
-local function fillslots(text: string, slots): string
+-- typed empties, for `node.field or NONE` loops
+local NO_IDS: { string } = {}
+local NO_SLOTS: { [string]: string } = {}
+
+local function fillslots(text: string, slots: { [string]: string }): string
 	for _ = 1, 10 do
 		local filled = text:gsub('{{(%w+)}}', function(name)
 			local value = slots[name]
@@ -16,7 +21,7 @@ local function fillslots(text: string, slots): string
 	error 'slots nest too deep'
 end
 
-local function compose(spec, checked: { string }, byid)
+local function compose(spec: nodes.spec, checked: { string }, byid: { [string]: nodes.node })
 	local slots = table.clone(spec.slots or {})
 	local setups, arms, posts, bugs, bugids = {}, {}, {}, {}, {}
 	local settle = spec.settle == true
@@ -28,12 +33,12 @@ local function compose(spec, checked: { string }, byid)
 	end
 
 	-- a bug note applies when its node is ticked, all of `bugwhen` too, and none of `bugnot`
-	local function bugapplies(node): boolean
+	local function bugapplies(node: nodes.node): boolean
 		if not node.bug then return false end
-		for _, id in node.bugwhen or {} do
+		for _, id in node.bugwhen or NO_IDS do
 			if not ticked[id] then return false end
 		end
-		for _, id in node.bugnot or {} do
+		for _, id in node.bugnot or NO_IDS do
 			if ticked[id] then return false end
 		end
 		return true
@@ -50,7 +55,7 @@ local function compose(spec, checked: { string }, byid)
 		end
 		if node.settle then settle = true end
 		if node.queue then queue = node.queue end
-		for name, value in node.slots or {} do
+		for name, value in node.slots or NO_SLOTS do
 			slots[name] = value
 		end
 	end

@@ -1,8 +1,9 @@
 -- Condition tree of resave.istracked (node fields: node.luau).
+local nodes = require './node'
 local shared = require './shared'
 local STORE = shared.STORE
 
-return {
+local spec: nodes.spec = {
 	name = 'istracked',
 	preamble = STORE,
 	prep = "local _, s = resave.track(players, 'p1')",
@@ -18,3 +19,5 @@ return {
 		},
 	},
 }
+
+return spec

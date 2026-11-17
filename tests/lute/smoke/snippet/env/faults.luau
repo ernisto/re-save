@@ -1,6 +1,7 @@
 -- Snippet helpers that reach into the mock DataStores: read them raw, make them
 -- fail, heal them. `st` is a store, or 'tx' for the transaction store.
 local mock = require '../../../mock'
+local types = require '../types'
 
 local function rawds(st: any)
 	if st == 'tx' then return mock.stores.tx end
@@ -27,7 +28,7 @@ local function heal(st)
 end
 
 -- nth UpdateAsync from now runs the callback, then fails to write
-local function makefailwrite(ctx)
+local function makefailwrite(ctx: types.ctx)
 	return function(st, nth: number?)
 		local ds = rawds(st)
 		local real = ds.UpdateAsync

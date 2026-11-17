@@ -1,4 +1,8 @@
 -- Walks a condition tree: every valid set of checked ids.
+local nodes = require '../conditions/node'
+
+local NO_IDS: { string } = {}
+
 -- combinations
 local function groupsof(nodes)
 	local groups = {}
@@ -54,13 +58,13 @@ local function indexnodes(nodes, out)
 	return out
 end
 
-local function isvalid(checked: { string }, byid): boolean
+local function isvalid(checked: { string }, byid: { [string]: nodes.node }): boolean
 	local set = {}
 	for _, id in checked do
 		set[id] = true
 	end
 	for _, id in checked do
-		for _, other in byid[id].conflicts or {} do
+		for _, other in byid[id].conflicts or NO_IDS do
 			if set[other] then return false end
 		end
 	end

@@ -1,4 +1,5 @@
 local paths = require './paths'
+local types = require './types'
 local cleanpaths = paths.cleanpaths
 
 -- value printer: Luau literal, sorted keys, os.time() shown relative to now
@@ -17,7 +18,7 @@ end
 
 local printvalue
 
-local function printtable(t: { [any]: any }, ctx, depth: number): string
+local function printtable(t: { [any]: any }, ctx: types.ctx, depth: number): string
 	if next(t) == nil then return '{}' end
 
 	local keys = {}
@@ -43,7 +44,7 @@ local function printtable(t: { [any]: any }, ctx, depth: number): string
 	return '{\n' .. table.concat(parts, ',\n') .. ',\n' .. string.rep('  ', depth) .. '}'
 end
 
-function printvalue(value: any, ctx, depth: number?): string
+function printvalue(value: any, ctx: types.ctx, depth: number?): string
 	depth = depth or 0
 
 	if type(value) == 'string' then return string.format('%q', cleanpaths(value)) end
@@ -61,7 +62,7 @@ end
 
 -- hover text for a snippet variable: like printvalue, but sessions show their state
 -- and strings keep real line breaks
-local function describevalue(value: any, ctx): string
+local function describevalue(value: any, ctx: types.ctx): string
 	if type(value) == 'string' then return `"{cleanpaths(value)}"` end
 	if not issession(value) then return printvalue(value, ctx) end
 

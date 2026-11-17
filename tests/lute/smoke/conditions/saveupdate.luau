@@ -1,9 +1,9 @@
 -- Condition tree of resave.saveupdate (node fields: node.luau).
+local nodes = require './node'
 local shared = require './shared'
 local SHOP_STORE = shared.SHOP_STORE
 local UPDATE_FAILS = shared.UPDATE_FAILS
 local WRITE_FAILS = shared.WRITE_FAILS
-local pendingtx = shared.pendingtx
 local andthen = shared.andthen
 
 -- the shop: a sword costs 10 coins
@@ -13,7 +13,7 @@ local SHOP_RECORD =
 local SHOP_LOCK =
 	"\n\tpendingtx = { id = 'tx-a', newdata = { coins = 25, items = { 'shield', 'bow' } }, version = 0, cooltimestamp = 0 },"
 
-return {
+local spec: nodes.spec = {
 	name = 'saveupdate',
 	preamble = SHOP_STORE,
 	call = "local err = resave.saveupdate(players, 'p1', function(d)\n\t{{body}}\nend)",
@@ -96,3 +96,5 @@ return {
 		),
 	},
 }
+
+return spec

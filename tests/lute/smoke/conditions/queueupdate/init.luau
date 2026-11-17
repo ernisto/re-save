@@ -2,6 +2,7 @@
 -- misuses first, then their fixes, then follow-up events.
 local fixes = require '@self/fixes'
 local followups = require '@self/followups'
+local nodes = require './node'
 local shared = require './shared'
 local SHOP_STORE = shared.SHOP_STORE
 
@@ -15,7 +16,7 @@ local BUY_INSIDE =
 local SPENT_ELSEWHERE =
 	"checkpoint 'queued'\ncloud(players).p1 = { data = { coins = 5, items = {} }, version = 0 } -- another server spent 95 coins meanwhile\nlocal freeerr = resave.free(s) -- leaving replays the queued purchase on that data"
 
-local MISUSES = {
+local MISUSES: { nodes.node } = {
 	{
 		id = 'buy',
 		group = 'fn',
@@ -94,12 +95,12 @@ local MISUSES = {
 	},
 }
 
-local tree = {}
+local tree: { nodes.node } = {}
 for _, part in { MISUSES, fixes, followups } do
 	table.move(part, 1, #part, #tree + 1, tree)
 end
 
-return {
+local spec: nodes.spec = {
 	name = 'queueupdate',
 	preamble = SHOP_STORE,
 	prep = "local _, s = resave.track(players, 'p1')",
@@ -112,3 +113,5 @@ return {
 	},
 	tree = tree,
 }
+
+return spec

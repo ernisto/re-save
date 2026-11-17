@@ -15,7 +15,7 @@ suite('schema', function(s)
 
 		local _, session = resave.track(players, 'p1')
 		assert(session)
-		t.eq(session.data.gems, nil)
+		t.eq((session.data :: any).gems, nil) -- the schema says there are gems: an old save has none
 	end)
 
 	s:case('migration_upgrades_old_saves_and_new_players', function(t)
@@ -23,6 +23,7 @@ suite('schema', function(s)
 		local v0 = resave.schema { coins = 0 }
 		local v1 = resave.migrate(v0, function(d)
 			d.gems = 0
+			return d
 		end)
 		local players = resave.store(name, { schema = v1 })
 		mock.stores[name].data.p1 = record { coins = 5 }
@@ -39,6 +40,7 @@ suite('schema', function(s)
 		local name = unique()
 		local v1 = resave.migrate(resave.schema { coins = 0 }, function(d)
 			d.gems = d.gems or 0
+			return d
 		end)
 		local players = resave.store(name, { schema = v1 })
 		mock.stores[name].data.newbie = record { coins = 0, gems = 7 }

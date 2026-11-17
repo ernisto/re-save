@@ -1,14 +1,14 @@
 -- Condition tree of resave.free (node fields: node.luau).
+local nodes = require './node'
 local shared = require './shared'
 local STORE = shared.STORE
 local RECORD = shared.RECORD
 local UPDATE_FAILS = shared.UPDATE_FAILS
 local WRITE_FAILS = shared.WRITE_FAILS
-local pendingtx = shared.pendingtx
 local txnodes = shared.txnodes
 local andthen = shared.andthen
 
-return {
+local spec: nodes.spec = {
 	name = 'free',
 	preamble = STORE,
 	prep = "local _, s = resave.track(players, 'p1')",
@@ -71,3 +71,5 @@ return {
 		),
 	},
 }
+
+return spec

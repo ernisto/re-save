@@ -1,13 +1,13 @@
 -- Condition tree of resave.track (node fields: node.luau).
+local nodes = require './node'
 local shared = require './shared'
 local RECORD = shared.RECORD
 local UPDATE_FAILS = shared.UPDATE_FAILS
 local WRITE_FAILS = shared.WRITE_FAILS
-local pendingtx = shared.pendingtx
 local txnodes = shared.txnodes
 local andthen = shared.andthen
 
-return {
+local spec: nodes.spec = {
 	name = 'track',
 	preamble = "local schema = {{schema}}\nlocal players = resave.store('players', { schema = schema })",
 	call = "local err, s = resave.track(players, 'p1')",
@@ -31,7 +31,7 @@ return {
 			group = 'key',
 			label = 'a record is stored',
 			setup = RECORD,
-			children = {
+			children = shared.join({
 				{
 					id = 'outdated',
 					group = 'version',
@@ -58,8 +58,7 @@ return {
 						'write_fails',
 					},
 				},
-				table.unpack(txnodes 'tx'),
-			},
+			}, txnodes 'tx'),
 		},
 		{
 			id = 'malformed',
@@ -92,3 +91,5 @@ return {
 		),
 	},
 }
+
+return spec

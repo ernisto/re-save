@@ -10,6 +10,7 @@ local paths = require './paths'
 local printer = require './printer'
 local resave = require '@self/resave'
 local snapshot = require './snapshot'
+local types = require './types'
 
 -- settle() waits both: real time for the save loop, frames for spawned threads
 local BG_FRAMES = 30
@@ -20,7 +21,8 @@ local function makefnlabel(code: string)
 	local lines = code:split '\n'
 
 	-- [line of `function`] = line of its `end`
-	local functions = query.findAllFromRoot(syntax.parse(code), function(n)
+	-- syntax trees are `any`: luau-lsp cannot narrow the lute AST unions (or read ParseResult.root)
+	local functions = query.findAllFromRoot(syntax.parse(code), function(n: any)
 		return if n.kind == 'expr' and n.tag == 'function' then n else nil
 	end)
 
@@ -30,7 +32,7 @@ local function makefnlabel(code: string)
 	end
 
 	return function(fn)
-		local source, line = debug.info(fn, 'sl')
+		local source: string, line: number = debug.info(fn, 'sl')
 		local insnippet = source == 'snippet' or source == '=snippet' or source == '@snippet'
 		if not insnippet then return `fn {paths.cleanpaths(source)}:{line}` end
 
@@ -57,7 +59,7 @@ end
 
 -- appended by instrument() to each top-level `local` line
 -- args: (name, value, declared here?) triples; only changed values are kept
-local function makecapture(ctx)
+local function makecapture(ctx: types.ctx)
 	return function(first: number, last: number, ...)
 		local args = table.pack(...)
 
@@ -76,7 +78,7 @@ local function makecapture(ctx)
 end
 
 -- os.clock ticks 1, 2, 3… per call: still different on every read, but the same in every run
-local function makeos(ctx)
+local function makeos(ctx: types.ctx)
 	local fakeos = table.clone(os)
 	fakeos.clock = function()
 		ctx.clock += 1
@@ -85,9 +87,7 @@ local function makeos(ctx)
 	return fakeos
 end
 
-local function makeenv(ctx, code: string, realresave)
-	ctx.fnlabel = makefnlabel(code)
-
+local function makeenv(ctx: types.ctx, realresave)
 	return {
 		resave = resave.wrapresave(ctx, realresave),
 		txcloud = mock.stores.tx.data,
@@ -123,4 +123,5 @@ end
 
 return {
 	makeenv = makeenv,
+	makefnlabel = makefnlabel,
 }

@@ -1,11 +1,12 @@
 -- queueupdate follow-up events after the call.
+local nodes = require '../node'
 local shared = require '../shared'
 local andthen = shared.andthen
 
 -- queueupdate cases where the call throws, so no follow-up could run
 local QUEUE_FAILS = { 'freed', 'raises', 'yields', 'not_json', 'returns_not_json', 'non_ascii', 'impure' }
 
-return {
+local list: { nodes.node } = {
 	andthen('livesync', 'the background loop runs', 'background loop', 'settle()', { conflicts = QUEUE_FAILS }),
 	andthen(
 		'then_saveupdate',
@@ -30,3 +31,5 @@ return {
 		{ conflicts = QUEUE_FAILS }
 	),
 }
+
+return list

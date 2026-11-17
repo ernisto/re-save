@@ -7,17 +7,17 @@ local task = require '@lute/task'
 local services = require './services'
 
 local here = (debug.info(1, 's') or ''):gsub('^@', ''):gsub('\\', '/')
-local dir = here:match '^(.*)/[^/]+$'
+local dir = here:match '^(.*)/[^/]+$' or '.'
 local repo = dir:match '^(.*)/tests/lute/mock$' or '.'
 local root = `{repo}/lib`
 
 local sources = {}
 local modules = {}
-local closers = {}
+local closers: { () -> () } = {}
 local warnings = {}
 local state = { closed = false }
 
-local robloxtask = table.clone(task)
+local robloxtask: any = table.clone(task)
 robloxtask.cancel = coroutine.close
 
 local function readsource(path: string): string

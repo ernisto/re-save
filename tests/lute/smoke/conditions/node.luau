@@ -31,6 +31,22 @@ export type node = {
 	bug: string?,
 	conflicts: { string }?,
 	children: { node }?,
+	keep: boolean?,
+	bugwhen: { string }?,
+	bugnot: { string }?,
+	queue: ('intro' | 'limitation')?,
+}
+
+-- a function's whole condition tree: the snippet parts every case shares, then the tree
+export type spec = {
+	name: string,
+	preamble: string,
+	prep: string?,
+	call: string,
+	ret: string,
+	settle: boolean?,
+	slots: { [string]: string }?,
+	tree: { node },
 }
 
 -- types only

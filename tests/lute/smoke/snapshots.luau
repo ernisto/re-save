@@ -9,7 +9,7 @@ local snippet = require './snippet'
 local here = (debug.info(1, 's') or ''):gsub('^@', ''):gsub('\\', '/')
 local path = `{here:match '^(.*)/[^/]+$'}/snapshots.json`
 
-local loaded
+local loaded: { [string]: { [string]: string } }?
 
 local function readfile(): string
 	local handle = fs.open(path, 'r')
@@ -19,9 +19,10 @@ local function readfile(): string
 end
 
 local function get(fnname: string, key: string): string
-	if not loaded then loaded = if fs.exists(path) then json.deserialize(readfile()) else {} end
+	local all = loaded or if fs.exists(path) then json.deserialize(readfile()) :: any else {}
+	loaded = all
 
-	local snapshot = loaded[fnname] and loaded[fnname][key]
+	local snapshot = all[fnname] and all[fnname][key]
 	if not snapshot then
 		error(`no snapshot for {fnname} '{key}': run lute run tests/lute/smoke/testgen.luau update`, 2)
 	end
